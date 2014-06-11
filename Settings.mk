@@ -1,16 +1,17 @@
+##BUILD_MODE=debug
 BUILD_MODE=release
 ENABLE_CUDA_BACKEND=yes
 ENABLE_CUDA_PROFILING=no
 CPP11COMPILER=no
-BOOST_PATH=/usr/local
-OPENCV_PATH=/usr/local
-NETCDF_INSTALLED=yes
+BOOST_PATH=/home/blue1/jmp84/phd/code/boost/boost_1_55_0.air200/BUILD
+OPENCV_PATH=/home/blue1/jmp84/phd/code/opencv/opencv-2.4.9/BUILD
+NETCDF_INSTALLED=no
 NETCDF_PATH=
 CUDA_PATH=/usr/local/cuda
-NVCC=nvcc
+NVCC=$(CUDA_PATH)/bin/nvcc
 NNFORGE_PATH=../..
-NNFORGE_INPUT_DATA_PATH=/home/max/nnforge/input_data
-NNFORGE_WORKING_DATA_PATH=/home/max/nnforge/working_data
+NNFORGE_INPUT_DATA_PATH=/home/blue1/jmp84/phd/notes/reimplementationNNJointModelSMTBBN/toolkits/nnforge/input_data
+NNFORGE_WORKING_DATA_PATH=/home/blue1/jmp84/phd/notes/reimplementationNNJointModelSMTBBN/toolkits/nnforge/working_data
 
 BOOST_LIBS=-lboost_thread-mt -lboost_regex-mt -lboost_chrono-mt -lboost_filesystem-mt -lboost_program_options-mt -lboost_random-mt -lboost_system-mt -lboost_date_time-mt
 OPENCV_LIBS=-lopencv_highgui -lopencv_imgproc -lopencv_core

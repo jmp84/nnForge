@@ -6,3 +6,11 @@
 *~
 *.sln
 *.vcxproj*
+*.log
+*.csv
+*.zip
+*.cfg
+README.sh
+examples/nnjm/data/
+examples/nnjm/output/
+examples/gtsrb/GTSRB/

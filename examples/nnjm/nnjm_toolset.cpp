@@ -1,0 +1,726 @@
+/**
+ * TODO header
+ */
+
+#include <examples/nnjm/nnjm_toolset.h>
+
+#include <vector>
+
+#include <boost/algorithm/string.hpp>
+#include <boost/filesystem/fstream.hpp>
+#include <boost/foreach.hpp>
+#include <boost/lexical_cast.hpp>
+#define BOOST_LOG_DYN_LINK
+#include <boost/log/trivial.hpp>
+#include <boost/log/expressions.hpp>
+#include <boost/tokenizer.hpp>
+
+#include <examples/nnjm/vocab.h>
+
+namespace nnjm {
+
+NnjmToolset::NnjmToolset(nnforge::factory_generator_smart_ptr factory) :
+  nnforge::neural_network_toolset(factory) {
+}
+
+NnjmToolset::~NnjmToolset() {
+}
+
+void NnjmToolset::initVocab() {
+  boost::filesystem::path sourceTextPath =
+      get_input_data_folder() / sourceTextFileName_;
+  boost::filesystem::path targetTextPath =
+      get_input_data_folder() / targetTextFileName_;
+  // TODO handle bad ifstream, exceptions with getline doesn't work
+  boost::filesystem::ifstream sourceTextFile(sourceTextPath);
+  boost::filesystem::ifstream targetTextFile(targetTextPath);
+  if (!vocab_) {
+    vocab_.reset(new Vocab(sourceTextFile,
+                           targetTextFile,
+                           inputVocabSize_,
+                           outputVocabSize_));
+  }
+}
+
+std::vector<nnforge::string_option> NnjmToolset::get_string_options() {
+  std::vector<nnforge::string_option> res;
+  res.push_back(
+      nnforge::string_option(
+          "source-text",
+          &sourceTextFileName_,
+          "",
+          "Source text (one sentence per line)"));
+  res.push_back(
+      nnforge::string_option(
+          "source-text-test",
+          &sourceTextTestFileName_,
+          "",
+          "Source text for testing (one sentence per line)"));
+  res.push_back(
+      nnforge::string_option(
+          "target-text",
+          &targetTextFileName_,
+          "",
+          "Target text (one sentence per line)"));
+  res.push_back(
+      nnforge::string_option(
+          "target-text-test",
+          &targetTextTestFileName_,
+          "",
+          "Target text for testing (one sentence per line)"));
+  res.push_back(
+      nnforge::string_option(
+          "alignment",
+          &alignmentFileName_,
+          "",
+          "Word alignment (Berkeley format: one alignment per line, "
+          "formatted as "
+          "'src_position-trg_position<SPACE>src_position-trg_position etc.')"));
+  res.push_back(
+      nnforge::string_option(
+          "alignment-test",
+          &alignmentTestFileName_,
+          "",
+          "Word alignment for testing (Berkeley format: one alignment per "
+          "line, formatted as "
+          "'src_position-trg_position<SPACE>src_position-trg_position etc.')"));
+  res.push_back(
+      nnforge::string_option(
+          "output-training-file",
+          &outputTrainingFileName_,
+          "training.sdt",
+          "Output training file name where training data will be stored in "
+          "binary format and fed to neural network training."));
+  res.push_back(
+      nnforge::string_option(
+          "validating-data-file",
+          &validatingDataFileName_,
+          "validating.sdt",
+          "Output validation file name where part of the training data will be "
+	  "stored in binary format to be used for validation in neural network "
+	  "training."));
+  res.push_back(
+      nnforge::string_option(
+          "output-testing-file",
+          &outputTestingFileName_,
+          "testing.udt",
+          "Output testing file name where testing data will be stored in "
+          "binary format and fed to a trained neural network."));
+  res.push_back(
+      nnforge::string_option(
+          "output-testing-label-file",
+          &outputTestingLabelFileName_,
+          "testing_rec_ids.txt",
+          "Output testing label file name containing target words."));
+  res.push_back(
+      nnforge::string_option(
+          "output-prediction-file",
+          &outputPredictionsFileName_,
+          "output.csv",
+          "Output predictions file name in testing."));
+  res.push_back(
+      nnforge::string_option(
+          "error-function",
+          &errorFunction_,
+          "ce",
+          "Error function (mse, cross-entropy, etc.). Possible values are "
+          "'ce' (default, stands for cross-entropy), 'mse'."));
+  return res;
+}
+
+std::vector<nnforge::int_option> NnjmToolset::get_int_options() {
+  std::vector<nnforge::int_option> res;
+  res.push_back(
+      nnforge::int_option(
+          "output-vocab-size",
+          &outputVocabSize_,
+          32000,
+          "Output vocabulary size, defines size of the output layer."));
+  res.push_back(
+      nnforge::int_option(
+          "input-vocab-size",
+          &inputVocabSize_,
+          16000,
+          "Input vocabulary size, defines the size of the input layer "
+          "together with --target-ngram-size=. No distinction is made "
+          "between source and target. This may be extended for more "
+          "flexibility."));
+  res.push_back(
+      nnforge::int_option(
+          "target-ngram-size",
+          &targetNgramSize_,
+          4,
+          "Target n-gram size in the nnjm model, defines the size of the input "
+          "layer together with --input-vocab-size=."));
+  res.push_back(
+      nnforge::int_option(
+          "source-window-size",
+          &sourceWindowSize_,
+          11,
+          "Source window size in the nnjm model."));
+  res.push_back(
+      nnforge::int_option(
+          "continuous-space-dimension",
+          &continuousSpaceDimension_,
+          192,
+          "Continuous space dimension where to project input words "
+          "(192 in the nnjm paper); defines the size of the first layer "
+          "together with --target-ngram-size= and --source-window-size=."));
+  res.push_back(
+      nnforge::int_option(
+          "hidden-layer-size",
+          &hiddenLayerSize_,
+          512,
+          "Hidden layer size (512 in the nnjm paper)."));
+  return res;
+}
+
+std::vector<nnforge::float_option> NnjmToolset::get_float_options() {
+  std::vector<nnforge::float_option> res;
+  res.push_back(
+      nnforge::float_option(
+          "reserved-for-validation",
+          &reservedForValidation_,
+          0.0F,
+          "Portion of training data reserved for validation in training."));
+  return res;
+}
+
+void NnjmToolset::prepare_training_data() {
+  // setup input configuration
+  nnforge::layer_configuration_specific inputConfiguration;
+  // Each word (source or target) is represented as a vector of size the input
+  // vocabulary size with all zeros except for a 1 at the index for this word.
+  // Note that the vocab size is constrained to be the same for source and
+  // target. Similarly, the linear transformation that converts words to
+  // a continuous representation ("shared mapping layer") is the same for source
+  // and target words. This may be a limitation.
+  // The context is represented as a 1D vector with 14 elements (1 element per
+  // context word) with input vocab size feature maps per element.
+  inputConfiguration.feature_map_count = vocab_->getInputVocabSize();
+  // The context consists of target history words and source words.
+  // In the nnjm paper, this is 3 + 11 = 14 context words
+  inputConfiguration.dimension_sizes.push_back(
+      targetNgramSize_ - 1 + sourceWindowSize_);
+
+  // The output is a 1 dimensional vector with
+  // output vocabulary size feature maps (32000 in the nnjm paper).
+  nnforge::layer_configuration_specific outputConfiguration;
+  outputConfiguration.feature_map_count = vocab_->getOutputVocabSize();
+  outputConfiguration.dimension_sizes.push_back(1);
+
+  // configure the training data writer
+  // TODO make a function
+  nnforge::supervised_data_stream_writer_smart_ptr trainingDataWriter;
+  boost::scoped_ptr<std::ofstream> trainingDataWriterTxt;
+  {
+    boost::filesystem::path trainingFilePath =
+        get_working_data_folder() / outputTrainingFileName_;
+    BOOST_LOG_TRIVIAL(info) <<
+        "Writing training data to " << trainingFilePath.string();
+    nnforge_shared_ptr<std::ofstream> trainingFile(
+        new boost::filesystem::ofstream(
+            trainingFilePath,
+            std::ios_base::out |
+            std::ios_base::binary |
+            std::ios_base::trunc));
+    trainingDataWriter = nnforge::supervised_data_stream_writer_smart_ptr(
+        new nnforge::supervised_data_stream_writer(
+            trainingFile,
+            inputConfiguration,
+            outputConfiguration));
+    boost::filesystem::path trainingFilePathTxt(trainingFilePath);
+    trainingFilePathTxt.replace_extension(boost::filesystem::path(".txt"));
+    trainingDataWriterTxt.reset(new boost::filesystem::ofstream(trainingFilePathTxt));
+  }
+
+  // configure the validation data writer
+  // TODO make a function
+  nnforge::supervised_data_stream_writer_smart_ptr validatingDataWriter;
+  boost::scoped_ptr<std::ofstream> validatingDataWriterTxt;
+  if (is_training_with_validation()) {
+    boost::filesystem::path validatingFilePath =
+        get_working_data_folder() / validatingDataFileName_;
+    BOOST_LOG_TRIVIAL(info) <<
+        "Writing validating data to " << validatingFilePath.string();
+    nnforge_shared_ptr<std::ofstream> validatingFile(
+        new boost::filesystem::ofstream(
+            validatingFilePath,
+            std::ios_base::out |
+            std::ios_base::binary |
+            std::ios_base::trunc));
+    validatingDataWriter = nnforge::supervised_data_stream_writer_smart_ptr(
+        new nnforge::supervised_data_stream_writer(
+            validatingFile,
+            inputConfiguration,
+            outputConfiguration));
+    boost::filesystem::path validatingFilePathTxt(validatingFilePath);
+    validatingFilePathTxt.replace_extension(boost::filesystem::path(".txt"));
+    validatingDataWriterTxt.reset(new boost::filesystem::ofstream(validatingFilePathTxt));
+  }
+
+  // configure input data, output data to be written
+  std::vector<float> inputData(
+      inputConfiguration.feature_map_count *
+      (targetNgramSize_ - 1 + sourceWindowSize_), -1.0F);
+  std::vector<float> outputData(
+      outputConfiguration.feature_map_count, -1.0F);
+  unsigned int trainingEntryCountWritten = 0;
+  unsigned int validatingEntryCountWritten = 0;
+  std::vector<WordId> trainingNgram(targetNgramSize_ + sourceWindowSize_);
+  nnforge::random_generator gen = nnforge::rnd::get_random_generator();
+  nnforge_uniform_real_distribution<float> dist(0.0F, 1.0F);
+
+  // open files containing training data: source, target and alignment
+  boost::filesystem::path sourceTextPath =
+      get_input_data_folder() / sourceTextFileName_;
+  boost::filesystem::path targetTextPath =
+      get_input_data_folder() / targetTextFileName_;
+  boost::filesystem::path alignmentPath =
+      get_input_data_folder() / alignmentFileName_;
+  boost::filesystem::ifstream sourceTextFile(sourceTextPath);
+  boost::filesystem::ifstream targetTextFile(targetTextPath);
+  boost::filesystem::ifstream alignmentFile(alignmentPath);
+
+  // read the training data
+  std::string sourceLine, targetLine, alignmentLine;
+  while (std::getline(sourceTextFile, sourceLine)
+      && std::getline(targetTextFile, targetLine)
+      && std::getline(alignmentFile, alignmentLine)) {
+    BOOST_LOG_TRIVIAL(debug) << "processing training instance:" << std::endl
+        << "source sentence: " << sourceLine << std::endl << "target sentence: "
+        << targetLine << std::endl << "alignment: " << alignmentLine;
+    std::vector<std::string> sourceTokens, targetTokens;
+    boost::split(sourceTokens, sourceLine, boost::is_any_of(" "));
+    boost::split(targetTokens, targetLine, boost::is_any_of(" "));
+    std::vector<std::vector<std::size_t> > target2SourceAlignment(
+        targetTokens.size());
+    getTarget2SourceAlignment(alignmentLine, &target2SourceAlignment);
+    // decide whether to use this aligned sentence pair as validation data
+    // or training data.
+    nnforge::supervised_data_stream_writer_smart_ptr currentDataWriter;
+    bool isAlignedSentencePairValidation;
+    if (dist(gen) < reservedForValidation_) {
+      currentDataWriter = validatingDataWriter;
+      isAlignedSentencePairValidation = true;
+      *validatingDataWriterTxt << targetLine << std::endl;
+    } else {
+      currentDataWriter = trainingDataWriter;
+      isAlignedSentencePairValidation = false;
+      *trainingDataWriterTxt << targetLine << std::endl;
+    }
+    // targetTokenIndex includes targetTokens.size() for the end of sentence
+    // marker; the training data is assumed not to have sentence markers
+    for (std::size_t targetTokenIndex = 0;
+        targetTokenIndex <= targetTokens.size(); ++targetTokenIndex) {
+      prepareTrainingInstance(targetTokenIndex,
+                              sourceTokens,
+                              targetTokens,
+                              target2SourceAlignment,
+                              &trainingNgram);
+      convertToInputData(trainingNgram, &inputData);
+      convertToOutputData(trainingNgram, &outputData);
+
+      if (isAlignedSentencePairValidation) {
+        validatingEntryCountWritten++;
+      } else {
+        trainingEntryCountWritten++;
+      }
+      currentDataWriter->write(&(*inputData.begin()),
+                               &(*outputData.begin()));
+    }
+  }
+
+  BOOST_LOG_TRIVIAL(info) <<
+      "Training entries written: " << trainingEntryCountWritten;
+  if (is_training_with_validation()) {
+    BOOST_LOG_TRIVIAL(info) <<
+        "Validation entries written: " << validatingEntryCountWritten;
+  }
+}
+
+void NnjmToolset::prepare_testing_data() {
+  // same input configuration as for training data
+  nnforge::layer_configuration_specific inputConfiguration;
+  inputConfiguration.feature_map_count = vocab_->getInputVocabSize();
+  inputConfiguration.dimension_sizes.push_back(
+      targetNgramSize_ - 1 + sourceWindowSize_);
+
+  // configure test data writer
+  nnforge::unsupervised_data_stream_writer_smart_ptr testingDataWriter;
+  {
+    boost::filesystem::path testingFilePath =
+        get_working_data_folder() / outputTestingFileName_;
+    BOOST_LOG_TRIVIAL(info) <<
+        "Writing test data to " << testingFilePath.string();
+    nnforge_shared_ptr<std::ofstream> validatingFile(
+        new boost::filesystem::ofstream(
+            testingFilePath,
+            std::ios_base::out |
+            std::ios_base::binary |
+            std::ios_base::trunc));
+    testingDataWriter = nnforge::unsupervised_data_stream_writer_smart_ptr(
+        new nnforge::unsupervised_data_stream_writer(
+            validatingFile,
+            inputConfiguration));
+  }
+
+  // configure label (target word) writer
+  boost::filesystem::path testingRecIdsFilepath =
+      get_working_data_folder() / outputTestingLabelFileName_;
+  boost::filesystem::ofstream testingRecLabelsWriter(
+      testingRecIdsFilepath,
+      std::ios_base::out | std::ios_base::trunc);
+  BOOST_LOG_TRIVIAL(info) << "Writing testing labels to " <<
+      testingRecIdsFilepath.string();
+
+  // configure data to be written
+  std::vector<float> inputData(
+      inputConfiguration.feature_map_count *
+      (targetNgramSize_ - 1 + sourceWindowSize_), -1.0F);
+  unsigned int testingEntryCountWritten = 0;
+  std::vector<WordId> trainingNgram(targetNgramSize_ + sourceWindowSize_);
+
+  // open files containing testing data: source, target and alignment
+  // TODO deal with wrong path, exceptions + getline doesn't work
+  boost::filesystem::path sourceTextPath =
+      get_input_data_folder() / sourceTextTestFileName_;
+  boost::filesystem::path targetTextPath =
+      get_input_data_folder() / targetTextTestFileName_;
+  boost::filesystem::path alignmentPath =
+      get_input_data_folder() / alignmentTestFileName_;
+  boost::filesystem::ifstream sourceTextFile(sourceTextPath);
+  boost::filesystem::ifstream targetTextFile(targetTextPath);
+  boost::filesystem::ifstream alignmentFile(alignmentPath);
+
+  // read the testing data
+  std::string sourceLine, targetLine, alignmentLine;
+  while (std::getline(sourceTextFile, sourceLine)
+      && std::getline(targetTextFile, targetLine)
+      && std::getline(alignmentFile, alignmentLine)) {
+    BOOST_LOG_TRIVIAL(debug) << "processing test instance:" << std::endl
+        << "source sentence: " << sourceLine << std::endl << "target sentence: "
+        << targetLine << std::endl << "alignment: " << alignmentLine;
+    std::vector<std::string> sourceTokens, targetTokens;
+    boost::split(sourceTokens, sourceLine, boost::is_any_of(" "));
+    boost::split(targetTokens, targetLine, boost::is_any_of(" "));
+    std::vector<std::vector<std::size_t> > target2SourceAlignment(
+        targetTokens.size());
+    getTarget2SourceAlignment(alignmentLine, &target2SourceAlignment);
+    // targetTokenIndex includes targetTokens.size() for the end of sentence
+    // marker; the test data is assumed not to have sentence markers
+    for (std::size_t targetTokenIndex = 0;
+        targetTokenIndex <= targetTokens.size(); ++targetTokenIndex) {
+      prepareTrainingInstance(targetTokenIndex,
+                              sourceTokens,
+                              targetTokens,
+                              target2SourceAlignment,
+                              &trainingNgram);
+      convertToInputData(trainingNgram, &inputData);
+      testingRecLabelsWriter <<
+          trainingNgram[trainingNgram.size() - 1] << std::endl;
+      testingEntryCountWritten++;
+      testingDataWriter->write(&(*inputData.begin()));
+    }
+  }
+  BOOST_LOG_TRIVIAL(info) << "Testing entries written: " <<
+      testingEntryCountWritten;
+}
+
+nnforge::network_schema_smart_ptr NnjmToolset::get_schema() const {
+  nnforge::network_schema_smart_ptr schema(new nnforge::network_schema());
+
+  // shared mapping layer: projects words to continuous space
+  schema->add_layer(
+      nnforge::const_layer_smart_ptr(
+          new nnforge::convolution_layer(
+              std::vector<unsigned int>(1, 1),
+              vocab_->getInputVocabSize(),
+              continuousSpaceDimension_)));
+
+  // tanh layer
+  schema->add_layer(
+      nnforge::const_layer_smart_ptr(
+          new nnforge::convolution_layer(
+              std::vector<unsigned int>(
+                  1, targetNgramSize_ - 1 + sourceWindowSize_),
+              continuousSpaceDimension_,
+              hiddenLayerSize_)));
+  schema->add_layer(
+      nnforge::const_layer_smart_ptr(new nnforge::hyperbolic_tangent_layer()));
+
+  // output layer (for now, only one hidden layer for tryouts)
+  schema->add_layer(
+      nnforge::const_layer_smart_ptr(
+          new nnforge::convolution_layer(
+              std::vector<unsigned int>(1, 1),
+              hiddenLayerSize_,
+              vocab_->getOutputVocabSize())));
+  schema->add_layer(
+      nnforge::const_layer_smart_ptr(
+          new nnforge::softmax_layer()));
+
+  return schema;
+}
+
+nnforge::network_output_type::output_type
+    NnjmToolset::get_network_output_type() const {
+  // TODO change this to classification
+  //return nnforge::network_output_type::type_regression;
+  return nnforge::network_output_type::type_classifier;
+}
+
+bool NnjmToolset::is_training_with_validation() const {
+  return (reservedForValidation_ > 0.0F);
+}
+
+// TODO run this through debugger to understand
+void NnjmToolset::run_test_with_unsupervised_data(
+    std::vector<nnforge::output_neuron_value_set_smart_ptr>&
+    predictedNeuronValueSetList) {
+  nnforge::output_neuron_value_set aggrNeuronValueSet(
+      predictedNeuronValueSetList,
+      nnforge::output_neuron_value_set::merge_average); // TODO check merge avg
+
+  boost::filesystem::path testingFilePath =
+      get_working_data_folder() / outputPredictionsFileName_;
+  BOOST_LOG_TRIVIAL(info) << "Writing testing results to " <<
+      testingFilePath.string();
+  boost::filesystem::ofstream fileOutput(
+      testingFilePath,
+      std::ios_base::out | std::ios_base::trunc);
+  fileOutput.exceptions(
+      std::ostream::eofbit | std::ostream::failbit | std::ostream::badbit);
+
+  boost::filesystem::path testingRecIdsFilepath =
+      get_working_data_folder() / outputTestingLabelFileName_;
+  boost::filesystem::ifstream fileInput(
+      testingRecIdsFilepath, std::ios_base::in);
+
+  // TODO what is this for
+  nnforge::normalize_data_transformer_smart_ptr outputTransformer =
+      get_reverse_output_data_normalize_transformer();
+
+  std::vector<std::vector<float> >::const_iterator it =
+      aggrNeuronValueSet.neuron_value_list.begin();
+  std::string str;
+  while (true) {
+    std::getline(fileInput, str);
+    boost::trim(str);
+
+    if (str.empty())
+      break;
+
+    int recId = atol(str.c_str());
+    fileOutput << recId;
+
+    const std::vector<float>& valueList = *it;
+
+    std::vector<std::pair<float, float> >::const_iterator mulAddIt =
+        outputTransformer->mul_add_list.begin();
+    for (std::vector<float>::const_iterator srcIt = valueList.begin();
+        srcIt != valueList.end(); ++srcIt, ++mulAddIt) {
+      float srcVal = *srcIt;
+      float transformedVal = srcVal * mulAddIt->first + mulAddIt->second;
+      float clippedVal = std::min(std::max(transformedVal, 0.0F), 1.0F);
+      fileOutput << "," << (boost::format("%|1$.6f|") % clippedVal).str();
+    }
+    fileOutput << std::endl;
+
+    ++it;
+  }
+}
+
+nnforge::const_error_function_smart_ptr
+    NnjmToolset::get_error_function() const {
+  if (errorFunction_ == "ce") {
+    return nnforge::error_function_smart_ptr(
+        new nnforge::cross_entropy_error_function());
+  }
+  if (errorFunction_ == "mse") {
+    return nnforge::error_function_smart_ptr(new nnforge::mse_error_function());
+  }
+  BOOST_LOG_TRIVIAL(fatal)<<
+      "Unknown or unimplemented error function: " << errorFunction_ <<
+      " (possible values are 'ce' and 'mse').";
+  return nnforge::error_function_smart_ptr();
+}
+
+const std::size_t NnjmToolset::getAffiliatedSourceWordIndex(
+    const std::vector<std::vector<std::size_t> >& target2SourceAlignment,
+    const std::size_t targetIndex, const std::size_t sourceTokensSize) const {
+  // special case: targetIndex corresponds to the end of sentence
+  if (targetIndex == target2SourceAlignment.size()) {
+    return sourceTokensSize;
+  }
+  std::size_t numberSourceWordsAlignedToTarget =
+      target2SourceAlignment[targetIndex].size();
+  // first case: one single source word aligned
+  if (numberSourceWordsAlignedToTarget == 1) {
+    return target2SourceAlignment[targetIndex][0];
+  }
+  // second case: several source words aligned
+  // use the middle word rounding down
+  if (numberSourceWordsAlignedToTarget > 1) {
+    return target2SourceAlignment[targetIndex]
+                                 [(numberSourceWordsAlignedToTarget - 1) / 2];
+  }
+  // third case: no source word aligned
+  // in that case use the affiliation of the closest aligned word, starting from
+  // the right
+  bool foundAlignedWord = false;
+  int neighborTargetIndex = boost::lexical_cast<int>(targetIndex) + 1;
+  int jump = 2;
+  bool jumpLeft = true;
+  bool rightEnd = false, leftEnd = false;
+  while (true) {
+    if (neighborTargetIndex
+        >= boost::lexical_cast<int>(target2SourceAlignment.size())) {
+      rightEnd = true;
+    }
+    if (neighborTargetIndex <= 0) {
+      leftEnd = true;
+    }
+    if (rightEnd && leftEnd) {
+      break;
+    }
+    if (neighborTargetIndex >= 0
+        && neighborTargetIndex
+            < boost::lexical_cast<int>(target2SourceAlignment.size())
+        && target2SourceAlignment[neighborTargetIndex].size() > 0) {
+      foundAlignedWord = true;
+      return getAffiliatedSourceWordIndex(target2SourceAlignment,
+                                          neighborTargetIndex,
+                                          sourceTokensSize);
+    }
+    if (jumpLeft) {
+      neighborTargetIndex -= jump;
+    } else {
+      neighborTargetIndex += jump;
+    }
+    jumpLeft = !jumpLeft;
+    ++jump;
+  }
+  if (!foundAlignedWord) {
+    BOOST_LOG_TRIVIAL(fatal)<< "No target word aligned";
+  }
+  return 0;
+}
+
+void NnjmToolset::getTarget2SourceAlignment(
+    const std::string& alignmentLine,
+    std::vector<std::vector<std::size_t> >* target2SourceAlignment) const {
+  // target2SourceAlignment supposed to have correct size
+  std::fill(target2SourceAlignment->begin(),
+            target2SourceAlignment->end(),
+            std::vector<std::size_t>());
+  std::vector<std::string> links;
+  boost::split(links, alignmentLine, boost::is_any_of(" "));
+  BOOST_FOREACH(const std::string& link, links) {
+    std::vector<std::string> linkPair;
+    boost::split(linkPair, link, boost::is_any_of("-"));
+    std::vector<int> linkInt(linkPair.size());
+    std::transform(linkPair.begin(), linkPair.end(), linkInt.begin(),
+                   boost::lexical_cast<int, std::string>);
+    if (linkInt.size() != 2) {
+      BOOST_LOG_TRIVIAL(fatal)<< "Wrong format for link: " << link;
+    }
+    (*target2SourceAlignment)[linkInt[1]].push_back(linkInt[0]);
+  }
+}
+
+void NnjmToolset::prepareTrainingInstance(
+    const std::size_t targetTokenIndex,
+    const std::vector<std::string>& sourceTokens,
+    const std::vector<std::string>& targetTokens,
+    const std::vector<std::vector<std::size_t> >& target2SourceAlignment,
+    std::vector<WordId>* trainingNgram) const {
+  // trainingNgram is assumed to have the correct size
+  const int sourceWindowHalfSize = sourceWindowSize_ / 2;
+  for (int targetNgramIndex = 0;
+      targetNgramIndex < targetNgramSize_ - 1;
+      ++targetNgramIndex) {
+    int targetHistoryIndex =
+        boost::lexical_cast<int>(targetTokenIndex) - targetNgramIndex - 1;
+    int inputTargetId;
+    if (targetHistoryIndex >= 0) {
+      inputTargetId =
+          vocab_->getInputTargetId(targetTokens[targetHistoryIndex]);
+    } else {
+      inputTargetId = vocab_->getTargetStartSentenceId();
+    }
+    (*trainingNgram)[targetNgramIndex] = inputTargetId;
+  }
+  std::size_t affiliatedSourceWordIndex =
+      getAffiliatedSourceWordIndex(
+          target2SourceAlignment, targetTokenIndex, sourceTokens.size());
+  for (int sourceWindowIndex = 0;
+      sourceWindowIndex < sourceWindowSize_;
+      ++sourceWindowIndex) {
+    int sourceTokenIndex =
+        boost::lexical_cast<int>(affiliatedSourceWordIndex) -
+        sourceWindowHalfSize +
+        sourceWindowIndex;
+    int inputSourceId;
+    if (sourceTokenIndex < 0) {
+      inputSourceId = vocab_->getSourceStartSentenceId();
+    } else if (sourceTokenIndex >=
+        boost::lexical_cast<int>(sourceTokens.size())) {
+      inputSourceId = vocab_->getSourceEndSentenceId();
+    } else {
+      inputSourceId = vocab_->getInputSourceId(sourceTokens[sourceTokenIndex]);
+    }
+    (*trainingNgram)[targetNgramSize_ - 1 + sourceWindowIndex] = inputSourceId;
+  }
+  int outputTargetId;
+  if (targetTokenIndex < targetTokens.size()) {
+    outputTargetId = vocab_->getOutputTargetId(targetTokens[targetTokenIndex]);
+  } else {
+    outputTargetId = vocab_->getTargetEndSentenceId();
+  }
+  (*trainingNgram)[targetNgramSize_ - 1 + sourceWindowSize_] = outputTargetId;
+}
+
+void NnjmToolset::convertToInputData(
+    const std::vector<WordId>& trainingNgram,
+    std::vector<float>* inputData) const {
+  // inputData is assumed to have the correct size
+  std::fill(inputData->begin(), inputData->end(), -1.0F);
+  if (trainingNgram.size() != targetNgramSize_ + sourceWindowSize_) {
+    BOOST_LOG_TRIVIAL(fatal) << "Wrong size for training n-gram: " <<
+        trainingNgram.size() << " (expecting: " <<
+        targetNgramSize_ + sourceWindowSize_ << ")";
+  }
+  if (inputData->size() !=
+      vocab_->getInputVocabSize() * (trainingNgram.size() - 1)) {
+    BOOST_LOG_TRIVIAL(fatal) << "Wrong size for inputData: " <<
+        inputData->size() << " (expecting: " <<
+        vocab_->getInputVocabSize() * trainingNgram.size() << ")";
+  }
+  // in the loop, don't look at the last word which is the label
+  for (std::size_t trainingNgramIndex = 0;
+      trainingNgramIndex < trainingNgram.size() - 1;
+      ++trainingNgramIndex) {
+    (*inputData)[trainingNgram[trainingNgramIndex] *
+                 (trainingNgram.size() - 1) + trainingNgramIndex] = 1.0F;
+  }
+}
+
+void NnjmToolset::convertToOutputData(const std::vector<WordId>& trainingNgram,
+                                      std::vector<float>* outputData) const {
+  // outputData is assumed to have the correct size
+  std::fill(outputData->begin(), outputData->end(), -1.0F);
+  if (trainingNgram.size() != targetNgramSize_ + sourceWindowSize_) {
+    BOOST_LOG_TRIVIAL(fatal) << "Wrong size for training n-gram: " <<
+        trainingNgram.size() << " (expecting: " <<
+        targetNgramSize_ + sourceWindowSize_ << ")";
+  }
+  if (outputData->size() != vocab_->getOutputVocabSize()) {
+    BOOST_LOG_TRIVIAL(fatal) << "Wrong size for outputData: " <<
+        outputData->size() << " (expecting: " <<
+        vocab_->getOutputVocabSize() << ")";
+  }
+  (*outputData)[trainingNgram[trainingNgram.size() - 1]] = 1.0F;
+}
+
+} //namespace nnjm
