@@ -9,7 +9,6 @@
 *.log
 *.csv
 *.zip
-*.cfg
 README.sh
 examples/nnjm/data/
 examples/nnjm/output/
