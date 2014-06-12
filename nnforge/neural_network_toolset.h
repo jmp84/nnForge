@@ -66,6 +66,8 @@ namespace nnforge
 
 		virtual void prepare_testing_data();
 
+		virtual void prepare_validating_data();
+
 		virtual network_schema_smart_ptr get_schema() const = 0;
 
 		virtual std::map<unsigned int, float> get_dropout_rate_map() const;

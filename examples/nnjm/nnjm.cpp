@@ -56,6 +56,7 @@ int main(int argc, char* argv[]) {
       const std::string& action = ts.get_action();
       if (action == "prepare_training_data" ||
           action == "prepare_testing_data" ||
+          action == "prepare_validating_data" ||
           action == "create") {
         ts.initVocab();
       }

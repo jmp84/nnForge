@@ -58,6 +58,12 @@ std::vector<nnforge::string_option> NnjmToolset::get_string_options() {
           "Source text for testing (one sentence per line)"));
   res.push_back(
       nnforge::string_option(
+          "source-text-validate",
+          &sourceTextValidateFileName_,
+          "",
+          "Source text for validating (one sentence per line)"));
+  res.push_back(
+      nnforge::string_option(
           "target-text",
           &targetTextFileName_,
           "",
@@ -68,6 +74,12 @@ std::vector<nnforge::string_option> NnjmToolset::get_string_options() {
           &targetTextTestFileName_,
           "",
           "Target text for testing (one sentence per line)"));
+  res.push_back(
+      nnforge::string_option(
+          "target-text-validate",
+          &targetTextValidateFileName_,
+          "",
+          "Target text for validating (one sentence per line)"));
   res.push_back(
       nnforge::string_option(
           "alignment",
@@ -82,6 +94,14 @@ std::vector<nnforge::string_option> NnjmToolset::get_string_options() {
           &alignmentTestFileName_,
           "",
           "Word alignment for testing (Berkeley format: one alignment per "
+          "line, formatted as "
+          "'src_position-trg_position<SPACE>src_position-trg_position etc.')"));
+  res.push_back(
+      nnforge::string_option(
+          "alignment-validate",
+          &alignmentValidateFileName_,
+          "",
+          "Word alignment for validating (Berkeley format: one alignment per "
           "line, formatted as "
           "'src_position-trg_position<SPACE>src_position-trg_position etc.')"));
   res.push_back(
@@ -425,6 +445,109 @@ void NnjmToolset::prepare_testing_data() {
   }
   BOOST_LOG_TRIVIAL(info) << "Testing entries written: " <<
       testingEntryCountWritten;
+}
+
+void NnjmToolset::prepare_validating_data() {
+  // setup input configuration
+  nnforge::layer_configuration_specific inputConfiguration;
+  // Each word (source or target) is represented as a vector of size the input
+  // vocabulary size with all zeros except for a 1 at the index for this word.
+  // Note that the vocab size is constrained to be the same for source and
+  // target. Similarly, the linear transformation that converts words to
+  // a continuous representation ("shared mapping layer") is the same for source
+  // and target words. This may be a limitation.
+  // The context is represented as a 1D vector with 14 elements (1 element per
+  // context word) with input vocab size feature maps per element.
+  inputConfiguration.feature_map_count = vocab_->getInputVocabSize();
+  // The context consists of target history words and source words.
+  // In the nnjm paper, this is 3 + 11 = 14 context words
+  inputConfiguration.dimension_sizes.push_back(
+      targetNgramSize_ - 1 + sourceWindowSize_);
+
+  // The output is a 1 dimensional vector with
+  // output vocabulary size feature maps (32000 in the nnjm paper).
+  nnforge::layer_configuration_specific outputConfiguration;
+  outputConfiguration.feature_map_count = vocab_->getOutputVocabSize();
+  outputConfiguration.dimension_sizes.push_back(1);
+
+  // configure the validation data writer
+  // TODO make a function
+  nnforge::supervised_data_stream_writer_smart_ptr validatingDataWriter;
+  boost::scoped_ptr<std::ofstream> validatingDataWriterTxt;
+  boost::filesystem::path validatingFilePath =
+      get_working_data_folder() / validatingDataFileName_;
+  BOOST_LOG_TRIVIAL(info) <<
+      "Writing validating data to " << validatingFilePath.string();
+  nnforge_shared_ptr<std::ofstream> validatingFile(
+      new boost::filesystem::ofstream(
+          validatingFilePath,
+          std::ios_base::out |
+          std::ios_base::binary |
+          std::ios_base::trunc));
+  validatingDataWriter = nnforge::supervised_data_stream_writer_smart_ptr(
+      new nnforge::supervised_data_stream_writer(
+          validatingFile,
+          inputConfiguration,
+          outputConfiguration));
+  boost::filesystem::path validatingFilePathTxt(validatingFilePath);
+  validatingFilePathTxt.replace_extension(boost::filesystem::path(".txt"));
+  validatingDataWriterTxt.reset(new boost::filesystem::ofstream(validatingFilePathTxt));
+
+  // configure input data, output data to be written
+  std::vector<float> inputData(
+      inputConfiguration.feature_map_count *
+      (targetNgramSize_ - 1 + sourceWindowSize_), -1.0F);
+  std::vector<float> outputData(
+      outputConfiguration.feature_map_count, -1.0F);
+  unsigned int validatingEntryCountWritten = 0;
+  std::vector<WordId> trainingNgram(targetNgramSize_ + sourceWindowSize_);
+
+  // open files containing validating data: source, target and alignment
+  boost::filesystem::path sourceTextPath =
+      get_input_data_folder() / sourceTextValidateFileName_;
+  boost::filesystem::path targetTextPath =
+      get_input_data_folder() / targetTextValidateFileName_;
+  boost::filesystem::path alignmentPath =
+      get_input_data_folder() / alignmentValidateFileName_;
+  boost::filesystem::ifstream sourceTextFile(sourceTextPath);
+  boost::filesystem::ifstream targetTextFile(targetTextPath);
+  boost::filesystem::ifstream alignmentFile(alignmentPath);
+
+  // read the validating data
+  std::string sourceLine, targetLine, alignmentLine;
+  while (std::getline(sourceTextFile, sourceLine)
+      && std::getline(targetTextFile, targetLine)
+      && std::getline(alignmentFile, alignmentLine)) {
+    BOOST_LOG_TRIVIAL(debug) << "processing validating instance:" << std::endl
+        << "source sentence: " << sourceLine << std::endl << "target sentence: "
+        << targetLine << std::endl << "alignment: " << alignmentLine;
+    std::vector<std::string> sourceTokens, targetTokens;
+    boost::split(sourceTokens, sourceLine, boost::is_any_of(" "));
+    boost::split(targetTokens, targetLine, boost::is_any_of(" "));
+    std::vector<std::vector<std::size_t> > target2SourceAlignment(
+        targetTokens.size());
+    getTarget2SourceAlignment(alignmentLine, &target2SourceAlignment);
+    *validatingDataWriterTxt << targetLine << std::endl;
+    // targetTokenIndex includes targetTokens.size() for the end of sentence
+    // marker; the validating data is assumed not to have sentence markers
+    for (std::size_t targetTokenIndex = 0;
+        targetTokenIndex <= targetTokens.size(); ++targetTokenIndex) {
+      prepareTrainingInstance(targetTokenIndex,
+                              sourceTokens,
+                              targetTokens,
+                              target2SourceAlignment,
+                              &trainingNgram);
+      convertToInputData(trainingNgram, &inputData);
+      convertToOutputData(trainingNgram, &outputData);
+
+      validatingEntryCountWritten++;
+      validatingDataWriter->write(&(*inputData.begin()),
+                                  &(*outputData.begin()));
+    }
+  }
+
+  BOOST_LOG_TRIVIAL(info) <<
+      "Validation entries written: " << validatingEntryCountWritten;
 }
 
 nnforge::network_schema_smart_ptr NnjmToolset::get_schema() const {

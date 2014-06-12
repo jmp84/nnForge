@@ -96,6 +96,10 @@ namespace nnforge
 		{
 			prepare_testing_data();
 		}
+        else if (!action.compare("prepare_validating_data"))
+        {
+            prepare_validating_data();
+        }
 		else if (!action.compare("randomize_data"))
 		{
 			randomize_data();
@@ -159,7 +163,12 @@ namespace nnforge
 		throw std::runtime_error("This toolset doesn't implement preparing testing data");
 	}
 	
-	bool neural_network_toolset::parse(int argc, char* argv[])
+    void neural_network_toolset::prepare_validating_data()
+    {
+        throw std::runtime_error("This toolset doesn't implement preparing validating data");
+    }
+
+    bool neural_network_toolset::parse(int argc, char* argv[])
 	{
 		boost::filesystem::path config_file;
 

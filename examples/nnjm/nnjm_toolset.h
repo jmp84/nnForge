@@ -72,6 +72,11 @@ protected:
   virtual void prepare_testing_data();
 
   /**
+   * Prepares the validation data.
+   */
+  virtual void prepare_validating_data();
+
+  /**
    * Configures the neural network architecture.
    * @return
    */
@@ -175,14 +180,20 @@ private:
   std::string sourceTextFileName_;
   /** source text file name for testing */
   std::string sourceTextTestFileName_;
+  /** source text file name for validating */
+  std::string sourceTextValidateFileName_;
   /** target text file name */
   std::string targetTextFileName_;
   /** target text file name for testing */
   std::string targetTextTestFileName_;
+  /** target text file name for validating */
+  std::string targetTextValidateFileName_;
   /** alignment file name */
   std::string alignmentFileName_;
   /** alignment file name for testing */
   std::string alignmentTestFileName_;
+  /** alignment file name for validating */
+  std::string alignmentValidateFileName_;
   /** output training file name */
   std::string outputTrainingFileName_;
   /** output validating file name */

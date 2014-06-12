@@ -23,6 +23,7 @@ bool compareValue(const std::pair<std::string, int>& p1,
 
 /**
  * Class to manage mapping between words and ids.
+ * TODO add serialization.
  */
 class Vocab {
 public:
