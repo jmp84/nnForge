@@ -67,11 +67,6 @@ protected:
   virtual void prepare_training_data();
 
   /**
-   * Prepares the test data.
-   */
-  virtual void prepare_testing_data();
-
-  /**
    * Prepares the validation data.
    */
   virtual void prepare_validating_data();
@@ -84,6 +79,7 @@ protected:
 
   /**
    * Gets network output type: unkown, classifier, roc or regression
+   * Here, we use the classifier type.
    * @return The network output type.
    */
   virtual nnforge::network_output_type::output_type
@@ -97,10 +93,6 @@ protected:
    */
   virtual bool is_training_with_validation() const;
 
-  virtual void run_test_with_unsupervised_data(
-      std::vector<nnforge::output_neuron_value_set_smart_ptr>&
-      predicted_neuron_value_set_list);
-
   /**
    * Gets the error function, such as mse, cross-entropy, etc.
    * The default in parent class is mse. The default for this application is
@@ -108,6 +100,48 @@ protected:
    * @return The error function.
    */
   virtual nnforge::const_error_function_smart_ptr get_error_function() const;
+
+  /**
+   * Gets the training data reader. Used for randomizing training data. Here,
+   * the supervised_sparse_data_stream_reader is used.
+   * @param path The path to the training data.
+   * @return The training data reader.
+   */
+  virtual nnforge::supervised_data_reader_smart_ptr
+      get_original_training_data_reader(
+          const boost::filesystem::path& path) const;
+
+  /**
+   * Gets the training data writer. Used for randomizing training data. Here,
+   * the supervised_sparse_data_stream_writer is used.
+   * @param reader The training data reader.
+   * @param path The path to the randomized training data.
+   * @return
+   */
+  virtual nnforge::data_writer_smart_ptr get_randomized_training_data_writer(
+        nnforge::supervised_data_reader& reader,
+        const boost::filesystem::path& path) const;
+
+  /**
+   * Gets the reader to read training data. The default in parent class is to
+   * use a supervised_data_stream_reader. The default for this application is
+   * to use a supervised_sparse_data_stream_reader. The difference with
+   * get_original_training_data_reader is that the reader reads randomized data
+   * whereas in get_original_training_data_reader, the reader reads the
+   * original training data.
+   * @return The training data reader.
+   */
+  virtual nnforge::supervised_data_reader_smart_ptr
+      get_initial_data_reader_for_training() const;
+
+  /**
+   * Gets the validating data reader. The reader reads the validating data
+   * specified by options or default. For this application, the reader
+   * is a supervised_sparse_data_stream_reader .
+   * @return The validating data reader.
+   */
+  virtual nnforge::supervised_data_reader_smart_ptr
+      get_initial_data_reader_for_validating() const;
 
 private:
   /**
@@ -153,28 +187,30 @@ private:
       std::vector<WordId>* trainingNgram) const;
 
   /**
-   * Converts a training n-gram to input data.
+   * Converts a training n-gram to input data in sparse format.
    * The input data is later fed to the training writer.
    * @param trainingNgram The training n-gram that consists of the
    * context (source words and history target words) and the label (target word)
    * (in the nnjm paper, this is a vector of size 15)
-   * @param inputData The input data to be fed to the training writer (in the
-   * nnjm paper, this is a vector of size 16000 * 14)
+   * @param inputSparseData The input data to be fed to the training writer (in
+   * the nnjm paper, this is a vector of size 14, if it was not sparse, it would
+   * be a vector of size 14 * 16000).
    */
-  void convertToInputData(const std::vector<WordId>& trainingNgram,
-                          std::vector<float>* inputData) const;
+  void convertToInputSparseData(const std::vector<WordId>& trainingNgram,
+                                std::vector<float>* inputSparseData) const;
 
   /**
-   * Converts a training n-gram to input data.
+   * Converts a training n-gram to input data in sparse format.
    * The input data is later fed to the training writer.
    * @param trainingNgram The training n-gram that consists of the
    * context (source words and history target words) and the label (target word)
    * (in the nnjm paper, this is a vector of size 15)
    * @param outputData The output data to be fed to the training writer (in the
-   * nnjm paper, this is a vector of size 32000)
+   * nnjm paper, this is a vector of size 1, if it was not sparse, it would be
+   * a vector of size 32000).
    */
-  void convertToOutputData(const std::vector<WordId>& trainingNgram,
-                           std::vector<float>* outputData) const;
+  void convertToOutputSparseData(const std::vector<WordId>& trainingNgram,
+                                 std::vector<float>* outputSparseData) const;
 
   /** source text file name */
   std::string sourceTextFileName_;
