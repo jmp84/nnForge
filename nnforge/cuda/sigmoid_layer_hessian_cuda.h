@@ -1,5 +1,5 @@
 /*
- *  Copyright 2011-2013 Maxim Milakov
+ *  Copyright 2011-2014 Maxim Milakov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -22,12 +22,12 @@ namespace nnforge
 {
 	namespace cuda
 	{
-		class max_subsampling_2d_layer_hessian_cuda : public layer_hessian_cuda
+		class sigmoid_layer_hessian_cuda : public layer_hessian_cuda
 		{
 		public:
-			max_subsampling_2d_layer_hessian_cuda();
+			sigmoid_layer_hessian_cuda();
 
-			virtual ~max_subsampling_2d_layer_hessian_cuda();
+			virtual ~sigmoid_layer_hessian_cuda();
 
 			virtual void enqueue_test(
 				cudaStream_t stream_id,
@@ -50,17 +50,6 @@ namespace nnforge
 
 		protected:
 			virtual bool is_in_place_backprop() const;
-
-			virtual void hessian_configured();
-
-			virtual std::vector<size_t> get_sizes_of_additional_buffers_per_entry() const;
-
-			virtual std::vector<size_t> get_sizes_of_additional_buffers_fixed() const;
-
-			virtual void fill_additional_buffers(const std::vector<cuda_linear_buffer_device_smart_ptr>& additional_buffers) const;
-
-		private:
-			std::vector<unsigned int> subsampling_sizes;
 		};
 	}
 }

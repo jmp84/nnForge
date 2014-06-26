@@ -27,6 +27,9 @@
 #include "../neural_network_exception.h"
 #include "../nn_types.h"
 
+#include "../debug_util.h"
+#include <boost/filesystem.hpp>
+
 namespace nnforge
 {
 	namespace plain
@@ -38,8 +41,9 @@ namespace nnforge
 			const_error_function_smart_ptr ef,
 			const std::map<unsigned int, float>& layer_to_dropout_rate_map,
 			const std::map<unsigned int, weight_vector_bound>& layer_to_weight_vector_bound_map,
+			float weight_decay,
 			plain_running_configuration_const_smart_ptr plain_config)
-			: network_updater(schema, ef, layer_to_dropout_rate_map, layer_to_weight_vector_bound_map)
+			: network_updater(schema, ef, layer_to_dropout_rate_map, layer_to_weight_vector_bound_map, weight_decay)
 			, plain_config(plain_config)
 		{
 			const const_layer_list& layer_list = *schema;
@@ -66,7 +70,7 @@ namespace nnforge
 			{
 				unsigned int layer_id = it->first;
 				if (layer_id < testing_layer_count)
-					throw neural_network_exception((boost::format("Weight vector bound is specified fo layer %1% while it is in testing part (consisting of %2% layers) of the updater") % layer_id  % testing_layer_count).str());
+					throw neural_network_exception((boost::format("Weight vector bound is specified for layer %1% while it is in testing part (consisting of %2% layers) of the updater") % layer_id  % testing_layer_count).str());
 
 				weight_vector_bounds.insert(std::make_pair(layer_id, single_weight_vector_bound_factory::get_const_instance().get_updater_plain_layer(layer_list[layer_id]->get_uuid())));
 			}
@@ -358,6 +362,17 @@ namespace nnforge
 									*(input_config_it + 1),
 									*input_config_it,
 									updater_entry_count);
+								/*
+								{
+									boost::filesystem::path dir = "Debug";
+									dir /= "CPU";
+									boost::filesystem::create_directories(dir);
+									debug_util::dump_list(
+										&(*updater_buffers_it->second.input_errors_buffer->begin()),
+										updater_buffers_it->second.input_errors_buffer->size(),
+										(dir / (boost::format("input_errors_%1%.txt") % reverse_layer_id).str()).string().c_str());
+								}
+								*/
 
 								std::map<unsigned int, float>::const_iterator dropout_it = layer_to_dropout_rate_map.find(reverse_layer_id);
 								if (dropout_it != layer_to_dropout_rate_map.end())
@@ -384,7 +399,8 @@ namespace nnforge
 								*(input_config_it + 1),
 								*input_config_it,
 								updater_entry_count,
-								(it == updater_list.rend() - 1) ? input_entry_id : -1);
+								(it == updater_list.rend() - 1) ? input_entry_id : -1,
+								weight_decay);
 
 							weight_vector_bound_map::iterator bound_it = weight_vector_bounds.find(reverse_layer_id);
 							if (bound_it != weight_vector_bounds.end())

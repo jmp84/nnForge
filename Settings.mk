@@ -7,6 +7,8 @@ BOOST_PATH=/home/blue1/jmp84/phd/code/boost/boost_1_55_0.air200/BUILD
 OPENCV_PATH=/home/blue1/jmp84/phd/code/opencv/opencv-2.4.9/BUILD
 NETCDF_INSTALLED=no
 NETCDF_PATH=
+MATIO_INSTALLED=yes
+MATIO_PATH=
 CUDA_PATH=/usr/local/cuda
 NVCC=$(CUDA_PATH)/bin/nvcc
 NNFORGE_PATH=../..
@@ -16,6 +18,7 @@ NNFORGE_WORKING_DATA_PATH=/home/blue1/jmp84/phd/notes/reimplementationNNJointMod
 BOOST_LIBS=-lboost_thread-mt -lboost_regex-mt -lboost_chrono-mt -lboost_filesystem-mt -lboost_program_options-mt -lboost_random-mt -lboost_system-mt -lboost_date_time-mt
 OPENCV_LIBS=-lopencv_highgui -lopencv_imgproc -lopencv_core
 NETCDF_LIBS=-lnetcdf
+MATIO_LIBS=-lmatio
 
 CPP_FLAGS_CPP11=-std=c++11
 CPP_HW_ARCHITECTURE=-march=native

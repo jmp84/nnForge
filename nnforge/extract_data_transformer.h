@@ -18,20 +18,18 @@
 
 #include "data_transformer.h"
 
-#include "rnd.h"
-
 #include <memory>
 
 namespace nnforge
 {
-	class rotate_band_2d_data_transformer : public data_transformer
+	class extract_data_transformer : public data_transformer
 	{
 	public:
-		rotate_band_2d_data_transformer(
-			unsigned int max_absolute_band_rotation_x,
-			unsigned int max_absolute_band_rotation_y);
+		extract_data_transformer(
+			const std::vector<unsigned int>& input_window_sizes,
+			const std::vector<unsigned int>& output_window_sizes);
 
-		virtual ~rotate_band_2d_data_transformer();
+		virtual ~extract_data_transformer();
 
 		virtual void transform(
 			const void * data,
@@ -39,11 +37,13 @@ namespace nnforge
 			neuron_data_type::input_type type,
 			const layer_configuration_specific& original_config,
 			unsigned int sample_id);
-			
-	protected:
-		random_generator generator;
 
-		nnforge_uniform_int_distribution<int> rotate_band_x_distribution;
-		nnforge_uniform_int_distribution<int> rotate_band_y_distribution;
+		virtual layer_configuration_specific get_transformed_configuration(const layer_configuration_specific& original_config) const;
+
+		virtual bool is_in_place() const;
+
+	protected:
+		std::vector<unsigned int> input_window_sizes;
+		std::vector<unsigned int> output_window_sizes;
 	};
 }

@@ -1,5 +1,5 @@
 /*
- *  Copyright 2011-2013 Maxim Milakov
+ *  Copyright 2011-2014 Maxim Milakov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -18,20 +18,18 @@
 
 #include "data_transformer.h"
 
+#include "rnd.h"
+
 #include <memory>
 
 namespace nnforge
 {
-	class extract_2d_data_transformer : public data_transformer
+	class rotate_band_data_transformer : public data_transformer
 	{
 	public:
-		extract_2d_data_transformer(
-			unsigned int input_window_width,
-			unsigned int input_window_height,
-			unsigned int output_window_width,
-			unsigned int output_window_height);
+		rotate_band_data_transformer(const std::vector<unsigned int>& max_absolute_band_rotations);
 
-		virtual ~extract_2d_data_transformer();
+		virtual ~rotate_band_data_transformer();
 
 		virtual void transform(
 			const void * data,
@@ -39,15 +37,11 @@ namespace nnforge
 			neuron_data_type::input_type type,
 			const layer_configuration_specific& original_config,
 			unsigned int sample_id);
-
-		virtual layer_configuration_specific get_transformed_configuration(const layer_configuration_specific& original_config) const;
-
+			
 		virtual bool is_in_place() const;
 
 	protected:
-		unsigned int input_window_width;
-		unsigned int input_window_height;
-		unsigned int output_window_width;
-		unsigned int output_window_height;
+		random_generator generator;
+		std::vector<nnforge_uniform_int_distribution<int> > rotate_band_distributions;
 	};
 }

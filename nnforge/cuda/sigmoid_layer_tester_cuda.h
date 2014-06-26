@@ -1,5 +1,5 @@
 /*
- *  Copyright 2011-2013 Maxim Milakov
+ *  Copyright 2011-2014 Maxim Milakov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -22,12 +22,12 @@ namespace nnforge
 {
 	namespace cuda
 	{
-		class max_subsampling_2d_layer_tester_cuda : public layer_tester_cuda
+		class sigmoid_layer_tester_cuda : public layer_tester_cuda
 		{
 		public:
-			max_subsampling_2d_layer_tester_cuda();
+			sigmoid_layer_tester_cuda();
 
-			virtual ~max_subsampling_2d_layer_tester_cuda();
+			virtual ~sigmoid_layer_tester_cuda();
 
 			virtual void enqueue_test(
 				cudaStream_t stream_id,
@@ -36,24 +36,6 @@ namespace nnforge
 				cuda_linear_buffer_device_smart_ptr input_buffer,
 				const std::vector<cuda_linear_buffer_device_smart_ptr>& additional_buffers,
 				unsigned int entry_count);
-
-			virtual cuda_linear_buffer_device_smart_ptr get_output_buffer(
-				cuda_linear_buffer_device_smart_ptr input_buffer,
-				const std::vector<cuda_linear_buffer_device_smart_ptr>& additional_buffers);
-
-		protected:
-			virtual void tester_configured();
-
-			virtual std::vector<size_t> get_sizes_of_additional_buffers_per_entry() const;
-
-			virtual std::vector<size_t> get_sizes_of_additional_buffers_fixed() const;
-
-			virtual void fill_additional_buffers(const std::vector<cuda_linear_buffer_device_smart_ptr>& additional_buffers) const;
-
-		private:
-			std::vector<unsigned int> subsampling_sizes;
-
-			int feature_map_block_count;
 		};
 	}
 }

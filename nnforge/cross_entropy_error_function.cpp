@@ -20,13 +20,13 @@
 
 namespace nnforge
 {
-	// {1955940E-D494-4776-BFAA-48974D9652F2}
+	// {7E4D6B3E-39D6-4E85-8049-5CE57D3E0FD2}
 	const boost::uuids::uuid cross_entropy_error_function::function_guid =
-		{ 0x19, 0x55, 0x94, 0x0e
-		, 0xd4, 0x94
-		, 0x47, 0x76
-		, 0xbf, 0xaa
-		, 0x48, 0x97, 0x4d, 0x96, 0x52, 0xf2 };
+		{ 0x7e, 0x4d, 0x6b, 0x3e
+		, 0x39, 0xd6
+		, 0x4e, 0x85
+		, 0x80, 0x49
+		, 0x5c, 0xe5, 0x7d, 0x3e, 0xf, 0xd2 };
 
 	cross_entropy_error_function::cross_entropy_error_function()
 	{
@@ -57,6 +57,8 @@ namespace nnforge
 			float actual_val = actual_values[i];
 			if (actual_val > 0.0F)
 				sum -= actual_val * logf(predicted_values[i]);
+			if (actual_val < 1.0F)
+				sum -= (1.0F - actual_val) * logf(1.0F - predicted_values[i]);
 		}
 
 		return sum;
@@ -73,7 +75,9 @@ namespace nnforge
 			float actual_val = actual_values[i];
 			float gradient_val = 0.0F;
 			if (actual_val > 0.0F)
-				gradient_val = actual_val / predicted_values[i];
+				gradient_val += actual_val / predicted_values[i];
+			if (actual_val < 1.0F)
+				gradient_val -= (1.0F - actual_val) / (1.0F - predicted_values[i]);
 
 			gradient[i] = gradient_val;
 		}

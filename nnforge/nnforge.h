@@ -29,6 +29,7 @@
 #include "soft_rectified_linear_layer.h"
 #include "softmax_layer.h"
 #include "maxout_layer.h"
+#include "sigmoid_layer.h"
 
 #include "neural_network_toolset.h"
 #include "supervised_data_stream_reader.h"
@@ -45,8 +46,8 @@
 #include "data_transformer_util.h"
 #include "distort_2d_data_transformer.h"
 #include "intensity_2d_data_transformer.h"
-#include "extract_2d_data_transformer.h"
-#include "rotate_band_2d_data_transformer.h"
+#include "extract_data_transformer.h"
+#include "rotate_band_data_transformer.h"
 #include "noise_data_transformer.h"
 #include "normalize_data_transformer.h"
 #include "distort_2d_data_sampler_transformer.h"
@@ -54,6 +55,7 @@
 
 #include "mse_error_function.h"
 #include "squared_hinge_loss_error_function.h"
+#include "negative_log_likelihood_error_function.h"
 #include "cross_entropy_error_function.h"
 
 #include "nn_types.h"

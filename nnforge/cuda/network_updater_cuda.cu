@@ -33,6 +33,9 @@
 #include <boost/format.hpp>
 #include <stack>
 
+#include "../debug_util.h"
+#include <boost/filesystem.hpp>
+
 namespace nnforge
 {
 	namespace cuda
@@ -79,8 +82,9 @@ namespace nnforge
 			const_error_function_smart_ptr ef,
 			const std::map<unsigned int, float>& layer_to_dropout_rate_map,
 			const std::map<unsigned int, weight_vector_bound>& layer_to_weight_vector_bound_map,
+			float weight_decay,
 			cuda_running_configuration_const_smart_ptr cuda_config)
-			: network_updater(schema, ef, layer_to_dropout_rate_map, layer_to_weight_vector_bound_map)
+			: network_updater(schema, ef, layer_to_dropout_rate_map, layer_to_weight_vector_bound_map, weight_decay)
 			, cuda_config(cuda_config)
 		{
 			const const_layer_list& layer_list = *schema;
@@ -107,7 +111,7 @@ namespace nnforge
 			{
 				unsigned int layer_id = it->first;
 				if (layer_id < testing_layer_count)
-					throw neural_network_exception((boost::format("Weight vector bound is specified fo layer %1% while it is in testing part (consisting of %2% layers) of the updater") % layer_id  % testing_layer_count).str());
+					throw neural_network_exception((boost::format("Weight vector bound is specified for layer %1% while it is in testing part (consisting of %2% layers) of the updater") % layer_id  % testing_layer_count).str());
 
 				weight_vector_bounds.insert(std::make_pair(layer_id, single_weight_vector_bound_factory::get_const_instance().create_weight_vector_bound(layer_list[layer_id], cuda_config)));
 			}
@@ -444,6 +448,23 @@ namespace nnforge
 										input_and_all_buffers_pack_it->second.dynamic_memobjects,
 										updater_entry_count);
 
+									/*
+									{
+										cuda_linear_buffer_device_smart_ptr buf = (input_and_all_buffers_pack_it->second.input_errors_buffer == 0) ? *output_errors_it : input_and_all_buffers_pack_it->second.input_errors_buffer;
+										std::vector<float> inp_err(buf->get_size() / sizeof(float));
+										cuda_safe_call(cudaMemcpyAsync(&(*inp_err.begin()), *buf, inp_err.size() * sizeof(float), cudaMemcpyDeviceToHost, *command_stream));
+										cuda_safe_call(cudaStreamSynchronize(*command_stream));
+										
+										boost::filesystem::path dir = "Debug";
+										dir /= "GPU";
+										boost::filesystem::create_directories(dir);
+										debug_util::dump_list(
+											&(*inp_err.begin()),
+											inp_err.size(),
+											(dir / (boost::format("input_errors_%1%.txt") % reverse_layer_id).str()).string().c_str());
+									}
+									*/
+
 									std::map<unsigned int, float>::const_iterator dropout_it = layer_to_dropout_rate_map.find(reverse_layer_id);
 									if (dropout_it != layer_to_dropout_rate_map.end())
 									{
@@ -470,7 +491,8 @@ namespace nnforge
 									input_and_all_buffers_pack_it->first,
 									input_and_all_buffers_pack_it->second.additional_buffers,
 									input_and_all_buffers_pack_it->second.dynamic_memobjects,
-									updater_entry_count);
+									updater_entry_count,
+									weight_decay);
 
 								weight_vector_bound_map::iterator bound_it = weight_vector_bounds.find(reverse_layer_id);
 								if (bound_it != weight_vector_bounds.end())

@@ -18,7 +18,7 @@
 
 #include "error_function.h"
 
-// E = -sum(y_i * log(x_i))
+// E = -sum(y_i*log(x_i) + (1-y_i)*log(1-x_i))
 namespace nnforge
 {
 	class cross_entropy_error_function : public error_function

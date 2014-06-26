@@ -1,5 +1,5 @@
 /*
- *  Copyright 2011-2013 Maxim Milakov
+ *  Copyright 2011-2014 Maxim Milakov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -16,51 +16,44 @@
 
 #pragma once
 
-#include "layer_hessian_cuda.h"
+#include "layer_updater_cuda.h"
 
 namespace nnforge
 {
 	namespace cuda
 	{
-		class max_subsampling_3d_layer_hessian_cuda : public layer_hessian_cuda
+		class sigmoid_layer_updater_cuda : public layer_updater_cuda
 		{
 		public:
-			max_subsampling_3d_layer_hessian_cuda();
+			sigmoid_layer_updater_cuda();
 
-			virtual ~max_subsampling_3d_layer_hessian_cuda();
+			virtual ~sigmoid_layer_updater_cuda();
 
 			virtual void enqueue_test(
+				unsigned int offset_input_entry_id,
 				cudaStream_t stream_id,
 				const std::vector<const_cuda_linear_buffer_device_smart_ptr>& schema_data,
-				const std::vector<const_cuda_linear_buffer_device_smart_ptr>& data,
+				const std::vector<cuda_linear_buffer_device_smart_ptr>& data,
 				const_cuda_linear_buffer_device_smart_ptr input_neurons_buffer,
 				cuda_linear_buffer_device_smart_ptr output_neurons_buffer,
 				const std::vector<cuda_linear_buffer_device_smart_ptr>& additional_buffers,
+				std::vector<cuda_memobject_smart_ptr>& dynamic_memobjects,
 				unsigned int entry_count);
 
 			virtual void enqueue_backprop(
 				cudaStream_t stream_id,
 				const std::vector<const_cuda_linear_buffer_device_smart_ptr>& schema_data,
-				const std::vector<const_cuda_linear_buffer_device_smart_ptr>& data,
+				const std::vector<cuda_linear_buffer_device_smart_ptr>& data,
 				const_cuda_linear_buffer_device_smart_ptr output_neurons_buffer,
+				const_cuda_linear_buffer_device_smart_ptr input_neurons_buffer,
 				cuda_linear_buffer_device_smart_ptr output_errors_buffer,
 				cuda_linear_buffer_device_smart_ptr input_errors_buffer,
 				const std::vector<cuda_linear_buffer_device_smart_ptr>& additional_buffers,
+				std::vector<cuda_memobject_smart_ptr>& dynamic_memobjects,
 				unsigned int entry_count);
 
 		protected:
 			virtual bool is_in_place_backprop() const;
-
-			virtual void hessian_configured();
-
-			virtual std::vector<size_t> get_sizes_of_additional_buffers_per_entry() const;
-
-			virtual std::vector<size_t> get_sizes_of_additional_buffers_fixed() const;
-
-			virtual void fill_additional_buffers(const std::vector<cuda_linear_buffer_device_smart_ptr>& additional_buffers) const;
-
-		private:
-			std::vector<unsigned int> subsampling_sizes;
 		};
 	}
 }

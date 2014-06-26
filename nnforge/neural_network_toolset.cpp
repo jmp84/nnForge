@@ -214,6 +214,8 @@ namespace nnforge
 			("training_algo", boost::program_options::value<std::string>(&training_algo)->default_value("sdlm"), "Training algorithm (sdlm, sgd).")
 			("dump_resume", boost::program_options::value<bool>(&dump_resume)->default_value(true), "Dump neural network data after each epoch.")
 			("load_resume,R", boost::program_options::value<bool>(&load_resume)->default_value(false), "Resume neural network training strating from saved.")
+			("epoch_count_in_training_set", boost::program_options::value<unsigned int>(&epoch_count_in_training_set)->default_value(1), "The whole should be split in this amount of epochs.")
+			("weight_decay", boost::program_options::value<float>(&weight_decay)->default_value(0.0F), "Weight decay.")
 			;
 
 		{
@@ -343,6 +345,7 @@ namespace nnforge
 	void neural_network_toolset::dump_settings()
 	{
 		{
+			std::cout << "action" << "=" << action << std::endl;
 			std::cout << "input_data_folder" << "=" << input_data_folder << std::endl;
 			std::cout << "working_data_folder" << "=" << working_data_folder << std::endl;
 			std::cout << "ann_count" << "=" << ann_count << std::endl;
@@ -368,6 +371,8 @@ namespace nnforge
 			std::cout << "training_algo" << "=" << training_algo << std::endl;
 			std::cout << "dump_resume" << "=" << dump_resume << std::endl;
 			std::cout << "load_resume" << "=" << load_resume << std::endl;
+			std::cout << "epoch_count_in_training_set" << "=" << epoch_count_in_training_set << std::endl;
+			std::cout << "weight_decay" << "=" << weight_decay << std::endl;
 		}
 		{
 			std::vector<string_option> additional_string_options = get_string_options();
@@ -444,11 +449,6 @@ namespace nnforge
 		return ann_subfolder_name;
 	}
 
-	unsigned int neural_network_toolset::get_epoch_count_for_training_set() const
-	{
-		return 1;
-	}
-
 	network_trainer_smart_ptr neural_network_toolset::get_network_trainer(network_schema_smart_ptr schema) const
 	{
 		network_trainer_smart_ptr res;
@@ -457,7 +457,8 @@ namespace nnforge
 			schema,
 			get_error_function(),
 			get_dropout_rate_map(),
-			get_weight_vector_bound_map());
+			get_weight_vector_bound_map(),
+			weight_decay);
 
 		if (training_algo == "sdlm")
 		{
@@ -1202,7 +1203,7 @@ namespace nnforge
 	{
 		supervised_data_reader_smart_ptr current_reader = get_initial_data_reader_for_training();
 
-		unsigned int epoch_count = get_epoch_count_for_training_set();
+		unsigned int epoch_count = epoch_count_in_training_set;
 		if (epoch_count > 1)
 		{
 			supervised_data_reader_smart_ptr new_reader(new supervised_multiple_epoch_data_reader(current_reader, epoch_count));
@@ -1351,7 +1352,7 @@ namespace nnforge
 		else
 		{
 			unsigned int starting_index = get_starting_index_for_batch_training();
-			peeker = nnforge_shared_ptr<network_data_peeker>(new network_data_peeker_random(ann_count, starting_index));
+			peeker = nnforge_shared_ptr<network_data_peeker>(new network_data_peeker_random(get_network_output_type(), ann_count, starting_index));
 		}
 
 		complex_network_data_pusher progress;
@@ -1387,7 +1388,8 @@ namespace nnforge
 			schema,
 			get_error_function(),
 			get_dropout_rate_map(),
-			get_weight_vector_bound_map());
+			get_weight_vector_bound_map(),
+			weight_decay);
 
 		supervised_data_reader_smart_ptr training_data_reader = get_data_reader_for_training();
 		training_data_reader = supervised_data_reader_smart_ptr(new supervised_limited_entry_count_data_reader(training_data_reader, profile_updater_entry_count));

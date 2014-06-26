@@ -30,6 +30,7 @@
 #include "softmax_layer_testing_schema.h"
 #include "rgb_to_yuv_convert_layer_testing_schema.h"
 #include "maxout_layer_testing_schema.h"
+#include "sigmoid_layer_testing_schema.h"
 
 #include "layer_hessian_schema_factory.h"
 #include "local_contrast_subtractive_layer_hessian_schema.h"
@@ -42,6 +43,7 @@
 #include "soft_rectified_linear_layer_hessian_schema.h"
 #include "softmax_layer_hessian_schema.h"
 #include "maxout_layer_hessian_schema.h"
+#include "sigmoid_layer_hessian_schema.h"
 
 #include "layer_updater_schema_factory.h"
 #include "local_contrast_subtractive_layer_updater_schema.h"
@@ -55,6 +57,7 @@
 #include "softmax_layer_updater_schema.h"
 #include "rgb_to_yuv_convert_layer_updater_schema.h"
 #include "maxout_layer_updater_schema.h"
+#include "sigmoid_layer_updater_schema.h"
 
 #include "weight_vector_bound_cuda_factory.h"
 #include "convolution_weight_vector_bound_cuda.h"
@@ -62,6 +65,7 @@
 #include "error_function_updater_cuda_factory.h"
 #include "mse_error_function_updater_cuda.h"
 #include "squared_hinge_loss_error_function_updater_cuda.h"
+#include "negative_log_likelihood_error_function_updater_cuda.h"
 #include "cross_entropy_error_function_updater_cuda.h"
 
 namespace nnforge
@@ -83,6 +87,7 @@ namespace nnforge
 			single_layer_testing_schema_factory::get_mutable_instance().register_layer_testing_schema(layer_testing_schema_smart_ptr(new softmax_layer_testing_schema()));
 			single_layer_testing_schema_factory::get_mutable_instance().register_layer_testing_schema(layer_testing_schema_smart_ptr(new rgb_to_yuv_convert_layer_testing_schema()));
 			single_layer_testing_schema_factory::get_mutable_instance().register_layer_testing_schema(layer_testing_schema_smart_ptr(new maxout_layer_testing_schema()));
+			single_layer_testing_schema_factory::get_mutable_instance().register_layer_testing_schema(layer_testing_schema_smart_ptr(new sigmoid_layer_testing_schema()));
 
 			single_layer_hessian_schema_factory::get_mutable_instance().register_layer_hessian_schema(layer_hessian_schema_smart_ptr(new local_contrast_subtractive_layer_hessian_schema()));
 			single_layer_hessian_schema_factory::get_mutable_instance().register_layer_hessian_schema(layer_hessian_schema_smart_ptr(new absolute_layer_hessian_schema()));
@@ -94,6 +99,7 @@ namespace nnforge
 			single_layer_hessian_schema_factory::get_mutable_instance().register_layer_hessian_schema(layer_hessian_schema_smart_ptr(new soft_rectified_linear_layer_hessian_schema()));
 			single_layer_hessian_schema_factory::get_mutable_instance().register_layer_hessian_schema(layer_hessian_schema_smart_ptr(new softmax_layer_hessian_schema()));
 			single_layer_hessian_schema_factory::get_mutable_instance().register_layer_hessian_schema(layer_hessian_schema_smart_ptr(new maxout_layer_hessian_schema()));
+			single_layer_hessian_schema_factory::get_mutable_instance().register_layer_hessian_schema(layer_hessian_schema_smart_ptr(new sigmoid_layer_hessian_schema()));
 
 			single_layer_updater_schema_factory::get_mutable_instance().register_layer_updater_schema(layer_updater_schema_smart_ptr(new local_contrast_subtractive_layer_updater_schema()));
 			single_layer_updater_schema_factory::get_mutable_instance().register_layer_updater_schema(layer_updater_schema_smart_ptr(new absolute_layer_updater_schema()));
@@ -106,11 +112,13 @@ namespace nnforge
 			single_layer_updater_schema_factory::get_mutable_instance().register_layer_updater_schema(layer_updater_schema_smart_ptr(new softmax_layer_updater_schema()));
 			single_layer_updater_schema_factory::get_mutable_instance().register_layer_updater_schema(layer_updater_schema_smart_ptr(new rgb_to_yuv_convert_layer_updater_schema()));
 			single_layer_updater_schema_factory::get_mutable_instance().register_layer_updater_schema(layer_updater_schema_smart_ptr(new maxout_layer_updater_schema()));
+			single_layer_updater_schema_factory::get_mutable_instance().register_layer_updater_schema(layer_updater_schema_smart_ptr(new sigmoid_layer_updater_schema()));
 
 			single_weight_vector_bound_factory::get_mutable_instance().register_weight_vector_bound(weight_vector_bound_cuda_smart_ptr(new convolution_weight_vector_bound_cuda()));
 
 			single_error_function_updater_cuda_factory::get_mutable_instance().register_error_function_updater_cuda(error_function_updater_cuda_smart_ptr(new mse_error_function_updater_cuda()));
 			single_error_function_updater_cuda_factory::get_mutable_instance().register_error_function_updater_cuda(error_function_updater_cuda_smart_ptr(new squared_hinge_loss_error_function_updater_cuda()));
+			single_error_function_updater_cuda_factory::get_mutable_instance().register_error_function_updater_cuda(error_function_updater_cuda_smart_ptr(new negative_log_likelihood_error_function_updater_cuda()));
 			single_error_function_updater_cuda_factory::get_mutable_instance().register_error_function_updater_cuda(error_function_updater_cuda_smart_ptr(new cross_entropy_error_function_updater_cuda()));
 		}
 	}
