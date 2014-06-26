@@ -144,9 +144,10 @@ std::vector<nnforge::string_option> NnjmToolset::get_string_options() {
       nnforge::string_option(
           "error-function",
           &errorFunction_,
-          "ce",
-          "Error function (mse, cross-entropy, etc.). Possible values are "
-          "'ce' (default, stands for cross-entropy), 'mse'."));
+          "nll",
+          "Error function (mse, negative log-likelihood, cross-entropy, etc.). "
+          "Possible values are 'nll' (default, stands for negative "
+          "log-likelihood), 'mse'."));
   return res;
 }
 
@@ -511,14 +512,15 @@ bool NnjmToolset::is_training_with_validation() const {
 
 nnforge::const_error_function_smart_ptr
     NnjmToolset::get_error_function() const {
-  if (errorFunction_ == "ce") {
+  if (errorFunction_ == "nll") {
     return nnforge::error_function_smart_ptr(
-        new nnforge::cross_entropy_error_function());
+        new nnforge::negative_log_likelihood_error_function());
   }
   if (errorFunction_ == "mse") {
-    return nnforge::error_function_smart_ptr(new nnforge::mse_error_function());
+    return nnforge::error_function_smart_ptr(
+    	new nnforge::mse_error_function());
   }
-  BOOST_LOG_TRIVIAL(fatal)<<
+  BOOST_LOG_TRIVIAL(fatal) <<
       "Unknown or unimplemented error function: " << errorFunction_ <<
       " (possible values are 'ce' and 'mse').";
   return nnforge::error_function_smart_ptr();
