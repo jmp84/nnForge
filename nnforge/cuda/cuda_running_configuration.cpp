@@ -55,6 +55,7 @@ namespace nnforge
 
 			int device_count;
 		    cuda_safe_call(cudaGetDeviceCount(&device_count));
+		    printf("device count: %d\n", device_count);
 			if (device_count <= 0)
 				throw neural_network_exception("No CUDA capable devices are found");
 
@@ -64,6 +65,7 @@ namespace nnforge
 			cudaDeviceProp device_prop;
 			cuda_safe_call(cudaGetDeviceProperties(&device_prop, device_id));
 			device_name = device_prop.name;
+			printf("device name: %s\n", device_name.c_str());
 			compute_capability_major = device_prop.major;
 			compute_capability_minor = device_prop.minor;
 			clock_rate = device_prop.clockRate;
