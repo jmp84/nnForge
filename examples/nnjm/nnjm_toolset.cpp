@@ -555,7 +555,18 @@ nnforge::network_schema_smart_ptr NnjmToolset::get_schema() const {
   schema->add_layer(
       nnforge::const_layer_smart_ptr(new nnforge::hyperbolic_tangent_layer()));
 
-  // output layer (for now, only one hidden layer for tryouts)
+  // second tanh layer
+  // second tanh layer is optional for speed
+  schema->add_layer(
+      nnforge::const_layer_smart_ptr(
+          new nnforge::convolution_layer(
+              std::vector<unsigned int>(1, 1),
+              hiddenLayerSize_,
+              hiddenLayerSize_)));
+  schema->add_layer(
+      nnforge::const_layer_smart_ptr(new nnforge::hyperbolic_tangent_layer()));
+
+  // output layer
   schema->add_layer(
       nnforge::const_layer_smart_ptr(
           new nnforge::convolution_layer(
