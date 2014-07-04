@@ -53,31 +53,32 @@ bool compareValue(const std::pair<std::string, int>& p1,
   inputVocabSize_(2 * inputVocabSize + 4),
   outputVocabSize_(outputVocabSize + 2) {
     
-    load(inputSourceVocabFile, inputVocabSize,
-    	 inputSourceWord2Id_, inputSourceId2Word_);
-    load(inputTargetVocabFile, inputVocabSize,
-    	 inputTargetWord2Id_, inputTargetId2Word_);
-    load(outputTargetVocabFile, outputVocabSize,
-    	 outputTargetWord2Id_, outputTargetId2Word_);
+    loadVocab(inputSourceVocabFile, inputVocabSize,
+    	 &inputSourceWord2Id_, &inputSourceId2Word_);
+    loadVocab(inputTargetVocabFile, inputVocabSize,
+    	 &inputTargetWord2Id_, &inputTargetId2Word_);
+    loadVocab(outputTargetVocabFile, outputVocabSize,
+    	 &outputTargetWord2Id_, &outputTargetId2Word_);
   }
 
-    void Vocab::load(std::istream& vocabFile
+    void Vocab::loadVocab(std::istream& vocabFile
 		       , int const vocabSize
-		       , HashVocabularyType &hv
-		       , VectorVocabularyType &vv) {
+		       , HashVocabularyType *hv
+		       , VectorVocabularyType *vv) {
 
       BOOST_LOG_TRIVIAL(info) << "Loading vocab...";
-
+      hv->clear();
+      vv->clear();
       std::string word;
       unsigned vocabId;
-      vv.resize(vocabSize);
+      vv->resize(vocabSize);
       while (vocabFile >> word >> vocabId) {
-	hv[word] = vocabId;
-	vv[vocabId]=word;
 	if (vocabId >= vocabSize) {
 	  BOOST_LOG_TRIVIAL(error) << "Vocabulary Id bigger than vocabSize!";
 	  exit(EXIT_FAILURE); 
 	}
+	(*hv)[word] = vocabId;
+	(*vv)[vocabId]=word;
     }
   }
 
