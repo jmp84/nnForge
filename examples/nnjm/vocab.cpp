@@ -12,6 +12,10 @@
 #include <boost/foreach.hpp>
 #include <boost/tokenizer.hpp>
 
+#define BOOST_LOG_DYN_LINK
+#include <boost/log/core.hpp>
+#include <boost/log/trivial.hpp>
+#include <boost/log/expressions.hpp>
 namespace nnjm {
 
 bool compareValue(const std::pair<std::string, int>& p1,
@@ -29,24 +33,77 @@ bool compareValue(const std::pair<std::string, int>& p1,
   return false;
 }
 
+  /**
+   * @brief Loads from vocabulary files
+
+   */
+  Vocab::Vocab(std::istream& inputSourceVocabFile
+	       , std::istream& inputTargetVocabFile
+	       , std::istream& outputTargetVocabFile
+	       , const int inputVocabSize
+	       , const int outputVocabSize
+	       )
+    : inputOovId_(2 * inputVocabSize),
+      sourceStartSentenceId_(2 * inputVocabSize + 1),
+      sourceEndSentenceId_(2 * inputVocabSize + 2),
+      targetStartSentenceId_(2 * inputVocabSize + 3),
+      outputOovId_(outputVocabSize),
+      targetEndSentenceId_(outputVocabSize + 1),
+      inputTargetVocabOffset_(inputVocabSize),
+  inputVocabSize_(2 * inputVocabSize + 4),
+  outputVocabSize_(outputVocabSize + 2) {
+    
+    load(inputSourceVocabFile, inputVocabSize,
+    	 inputSourceWord2Id_, inputSourceId2Word_);
+    load(inputTargetVocabFile, inputVocabSize,
+    	 inputTargetWord2Id_, inputTargetId2Word_);
+    load(outputTargetVocabFile, outputVocabSize,
+    	 outputTargetWord2Id_, outputTargetId2Word_);
+  }
+
+    void Vocab::load(std::istream& vocabFile
+		       , int const vocabSize
+		       , HashVocabularyType &hv
+		       , VectorVocabularyType &vv) {
+
+      BOOST_LOG_TRIVIAL(info) << "Loading vocab...";
+
+      std::string word;
+      unsigned vocabId;
+      vv.resize(vocabSize);
+      while (vocabFile >> word >> vocabId) {
+	hv[word] = vocabId;
+	vv[vocabId]=word;
+	if (vocabId >= vocabSize) {
+	  BOOST_LOG_TRIVIAL(error) << "Vocabulary Id bigger than vocabSize!";
+	  exit(EXIT_FAILURE); 
+	}
+    }
+  }
+
+
 Vocab::Vocab(std::istream& sourceTextFile,
              std::istream& targetTextFile,
              const int inputVocabSize,
              const int outputVocabSize) :
-                 // '2 *' is because there's source and target
-                 inputOovId_(2 * inputVocabSize),
-                 sourceStartSentenceId_(2 * inputVocabSize + 1),
-                 sourceEndSentenceId_(2 * inputVocabSize + 2),
-                 targetStartSentenceId_(2 * inputVocabSize + 3),
-                 outputOovId_(outputVocabSize),
-                 targetEndSentenceId_(outputVocabSize + 1),
-                 inputTargetVocabOffset_(inputVocabSize),
-                 // there are 4 special words:
-                 // <oov>, <src>, </src> and <trg>
-                 inputVocabSize_(2 * inputVocabSize + 4),
-                 // there are 2 special words:
-                 // <oov>, </trg>
-                 outputVocabSize_(outputVocabSize + 2) {
+  // '2 *' is because there's source and target
+  inputOovId_(2 * inputVocabSize),
+  sourceStartSentenceId_(2 * inputVocabSize + 1),
+  sourceEndSentenceId_(2 * inputVocabSize + 2),
+  targetStartSentenceId_(2 * inputVocabSize + 3),
+  outputOovId_(outputVocabSize),
+  targetEndSentenceId_(outputVocabSize + 1),
+  inputTargetVocabOffset_(inputVocabSize),
+  // there are 4 special words:
+  // <oov>, <src>, </src> and <trg>
+  inputVocabSize_(2 * inputVocabSize + 4),
+// there are 2 special words:
+// <oov>, </trg>
+  outputVocabSize_(outputVocabSize + 2) {
+
+  BOOST_LOG_TRIVIAL(info) << "Creating vocab from text files...";
+
+
   makeVocab(sourceTextFile, inputVocabSize,
             &inputSourceWord2Id_, &inputSourceId2Word_);
   makeVocab(targetTextFile, inputVocabSize,
@@ -140,5 +197,38 @@ void Vocab::makeVocab(std::istream& textFile, const int vocabSize,
     }
   }
 }
+
+  //Note: vocab vector has empty string if smaller than vocab size
+void Vocab::store(std::ostream& inputSourceVocabFile
+		       , std::ostream& inputTargetVocabFile
+		       , std::ostream& outputTargetVocabFile
+		  ){
+
+  BOOST_LOG_TRIVIAL(info)
+    << "Storing...";
+
+  for (HashVocabularyType::const_iterator itx=inputSourceWord2Id_.begin()
+	 ; itx !=inputSourceWord2Id_.end()
+	 ; ++itx) {
+
+    inputSourceVocabFile << itx->first << "\t" << itx->second << "\n";
+  }
+  for (HashVocabularyType::const_iterator itx=inputTargetWord2Id_.begin()
+	 ; itx !=inputTargetWord2Id_.end()
+	 ; ++itx) {
+
+    inputTargetVocabFile << itx->first << "\t" << itx->second << "\n";
+  }
+
+  for (HashVocabularyType::const_iterator itx=outputTargetWord2Id_.begin()
+	 ; itx !=outputTargetWord2Id_.end()
+	 ; ++itx) {
+    outputTargetVocabFile << itx->first << "\t" << itx->second << "\n";
+  }
+
+  BOOST_LOG_TRIVIAL(info)
+    << "Done!";
+}
+
 
 } // namespace nnjm

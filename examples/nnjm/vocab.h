@@ -12,6 +12,10 @@
 
 namespace nnjm {
 
+  typedef nnjm_unordered_map<std::string, int> HashVocabularyType;
+  typedef std::vector<std::string> VectorVocabularyType;
+
+
 /**
  * Compare function used to sort key/value pairs by value in reverse order
  * @param p1
@@ -27,6 +31,14 @@ bool compareValue(const std::pair<std::string, int>& p1,
  */
 class Vocab {
 public:
+
+  Vocab(std::istream& inputSourceTextFile,
+        std::istream& inputTargetTextFile,
+        std::istream& outputTargetTextFile,
+	const int inputVocabSize,
+	const int outputVocabSize
+	);
+
   /**
    * Constructor.
    * Reads source and target text and builds the input source, input target and
@@ -108,7 +120,19 @@ public:
    */
   const int getTargetEndSentenceId() const;
 
+  void store(std::ostream& inputSourceVocabFile
+	     , std::ostream& inputTargetVocabFile
+	     , std::ostream& outputTargetVocabFile
+	     );
+
 private:
+
+  void load(std::istream& vocabFile
+	    , int const vocabSize
+	    , HashVocabularyType &hv
+	    , VectorVocabularyType &vv);
+
+
   /**
    * Helper for the constructor.
    * Reads a text and generates a vocabulary.
@@ -120,6 +144,9 @@ private:
   void makeVocab(std::istream& textFile, const int vocabSize,
                  nnjm_unordered_map<std::string, int>* word2Id,
                  std::vector<std::string>* id2Word);
+
+
+
 
   /** word to id map for input source words */
   nnjm_unordered_map<std::string, int> inputSourceWord2Id_;

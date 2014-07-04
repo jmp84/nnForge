@@ -54,11 +54,18 @@ int main(int argc, char* argv[]) {
 
     if (ts.parse(argc, argv)) {
       const std::string& action = ts.get_action();
+      if (action == "create_vocab") {
+	ts.initVocab();
+	ts.storeVocab();
+	return 0;
+      }
       if (action == "prepare_training_data" ||
           action == "prepare_testing_data" ||
           action == "prepare_validating_data" ||
           action == "create") {
-        ts.initVocab();
+	//init vocabulary passing
+        ts.loadVocab();
+
       }
       ts.do_action();
     }

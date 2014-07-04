@@ -37,6 +37,16 @@ public:
    */
   void initVocab();
 
+  /**
+   * Stores vocabulary into a file
+   */
+  void storeVocab();
+
+  /**
+   * Loads vocabulary from a file
+   */
+  bool loadVocab();
+
 protected:
   /**
    * Additional string options for this application (nnjm).
@@ -261,6 +271,14 @@ private:
   int hiddenLayerSize_;
   /** portion of training data reserved for validation in training */
   float reservedForValidation_;
+
+
+  /** vocabulary filename */
+  std::string sourceInputVocabularyFileName_;
+  std::string targetInputVocabularyFileName_;
+  std::string targetOutputVocabularyFileName_;
+
+
 };
 
 } // namespace nnjm

@@ -26,26 +26,84 @@ NnjmToolset::NnjmToolset(nnforge::factory_generator_smart_ptr factory) :
 }
 
 NnjmToolset::~NnjmToolset() {
+
 }
 
-void NnjmToolset::initVocab() {
-  boost::filesystem::path sourceTextPath =
-      get_input_data_folder() / sourceTextFileName_;
-  boost::filesystem::path targetTextPath =
-      get_input_data_folder() / targetTextFileName_;
-  // TODO handle bad ifstream, exceptions with getline doesn't work
-  boost::filesystem::ifstream sourceTextFile(sourceTextPath);
-  boost::filesystem::ifstream targetTextFile(targetTextPath);
-  if (!vocab_) {
-    vocab_.reset(new Vocab(sourceTextFile,
-                           targetTextFile,
-                           inputVocabSize_,
-                           outputVocabSize_));
+  void NnjmToolset::storeVocab() {
+
+    boost::filesystem::ofstream sourceInputVocabFile(sourceInputVocabularyFileName_);
+    boost::filesystem::ofstream targetInputVocabFile(targetInputVocabularyFileName_);
+    boost::filesystem::ofstream targetOutputVocabFile(targetOutputVocabularyFileName_);  
+    vocab_->store(sourceInputVocabFile
+		  , targetInputVocabFile
+		  , targetOutputVocabFile
+		  );
   }
+  bool NnjmToolset::loadVocab() {
+    boost::filesystem::ifstream sourceInputVocabFile(sourceInputVocabularyFileName_);
+    boost::filesystem::ifstream targetInputVocabFile(targetInputVocabularyFileName_); 
+    boost::filesystem::ifstream targetOutputVocabFile(targetOutputVocabularyFileName_);
+    if ( !sourceInputVocabFile.is_open()
+	 || !targetInputVocabFile.is_open()
+	 || !targetOutputVocabFile.is_open()
+	 ) {
+      BOOST_LOG_TRIVIAL(warning) << "Default vocabulary files not found. Creating...";
+      this->initVocab();
+      return false;
+    }
+    vocab_.reset(new Vocab(sourceInputVocabFile
+			   , targetInputVocabFile
+			   , targetOutputVocabFile
+			   , inputVocabSize_
+			   , outputVocabSize_
+			   ));
+    return true;
+  }
+
+  void NnjmToolset::initVocab()
+ {
+     boost::filesystem::path sourceTextPath =
+       get_input_data_folder() / sourceTextFileName_;
+     boost::filesystem::path targetTextPath =
+       get_input_data_folder() / targetTextFileName_;
+     // TODO handle bad ifstream, exceptions with getline doesn't work
+     boost::filesystem::ifstream sourceTextFile(sourceTextPath);
+     boost::filesystem::ifstream targetTextFile(targetTextPath);     
+  if (!vocab_) {
+     vocab_.reset(new Vocab(sourceTextFile,
+			    targetTextFile,
+			    inputVocabSize_,
+			    outputVocabSize_));
+   }
 }
 
 std::vector<nnforge::string_option> NnjmToolset::get_string_options() {
   std::vector<nnforge::string_option> res;
+
+  res.push_back(
+      nnforge::string_option(
+          "source-input-vocab-filename",
+          &sourceInputVocabularyFileName_,
+          "sourceInput.vcb",
+	  "Source input vocabulary file name"
+	  ));
+
+  res.push_back(
+      nnforge::string_option(
+          "target-input-vocab-filename",
+          &targetInputVocabularyFileName_,
+          "targetInput.vcb",
+	  "Target input vocabulary file name"
+	  ));
+
+  res.push_back(
+      nnforge::string_option(
+         "target-output-vocab-filename",
+         &targetOutputVocabularyFileName_,
+         "targetOutput.vcb",
+         "Target output vocabulary file name"
+         ));
+
   res.push_back(
       nnforge::string_option(
           "source-text",
@@ -168,6 +226,7 @@ std::vector<nnforge::int_option> NnjmToolset::get_int_options() {
           "together with --target-ngram-size=. No distinction is made "
           "between source and target. This may be extended for more "
           "flexibility."));
+
   res.push_back(
       nnforge::int_option(
           "target-ngram-size",
@@ -311,6 +370,7 @@ void NnjmToolset::prepare_training_data() {
   while (std::getline(sourceTextFile, sourceLine)
       && std::getline(targetTextFile, targetLine)
       && std::getline(alignmentFile, alignmentLine)) {
+
     BOOST_LOG_TRIVIAL(debug) << "processing training instance:" << std::endl
         << "source sentence: " << sourceLine << std::endl << "target sentence: "
         << targetLine << std::endl << "alignment: " << alignmentLine;
