@@ -23,6 +23,9 @@
 
 #include "util_cuda.h"
 
+/**
+ * computes max using the reduce algorithm
+ */
 __global__ void max_kernel(
 		const float * __restrict input,
 		float * __restrict output,
@@ -52,6 +55,10 @@ __global__ void max_kernel(
 	}
 }
 
+/**
+ * computes exp(x_i - m) over a range
+ * m is max(x_i)
+ */
 __global__ void exponential_minus_max_kernel(
 		const float * __restrict input,
 		float * __restrict output,
@@ -67,6 +74,9 @@ __global__ void exponential_minus_max_kernel(
 	output[id] = expf(input[id] - *max_exp);
 }
 
+/**
+ * computes sum using the reduce algorithm
+ */
 __global__ void sum_kernel(
 		const float * __restrict input,
 		float * __restrict output,
@@ -76,7 +86,7 @@ __global__ void sum_kernel(
 	unsigned int id = blockIdx.x * blockDim.x + threadIdx.x;
 
 	// global to shared memory
-	// if out of bounds, use identity elt for sum
+	// if out of bounds, use identity elt for sum, i.e. 0
 	extern __shared__ float sdata[];
 	sdata[tid] = id < size ? input[id] : 0.0F;
 	__syncthreads();
@@ -95,6 +105,9 @@ __global__ void sum_kernel(
 	}
 }
 
+/**
+ * divides all elements in a range by a normalizing constant
+ */
 __global__ void normalize_kernel(
 		float * __restrict output,
 		float* sum,
@@ -108,7 +121,6 @@ __global__ void normalize_kernel(
 	}
 
 	output[id] /= (*sum);
-	__syncthreads();
 }
 
 __global__ void dot_product_kernel(
@@ -218,6 +230,13 @@ namespace nnforge
 			return 0;
 		}
 
+		/**
+		 * computes softmax
+		 * softmax(x_1, ..., x_n) = (x_1/sum(x_i), ..., x_n/sum(x_i)
+		 * to avoid underflow/overflow, we use the log sum exp trick
+		 * (http://math.stackexchange.com/questions/648514/preventing-underflow-log-sum-exp-trick)
+		 * softmax is parallelized for speed (in nnjm paper, layer size is 32000)
+		 */
 		void softmax_layer_updater_cuda::enqueue_test(
 			unsigned int offset_input_entry_id,
 			cudaStream_t stream_id,
@@ -260,6 +279,7 @@ namespace nnforge
 			cuda_safe_call(cudaMalloc((void **) &sum_exps, sizeof(float)));
 
 			// compute max
+			// only 2 calls, assume size <= than 1024 x 1024
 			// first: max per block
 			max_kernel<<<numBlocks, numThreads, size_shared_memory>>>(
 					*input_neurons_buffer,
@@ -279,6 +299,7 @@ namespace nnforge
 					layer_size);
 
 			// compute the sum
+			// only 2 calls, assume size <= 1024 x 1024
 			// first: sum per block
 			sum_kernel<<<numBlocks, numThreads, size_shared_memory>>>(
 					*output_neurons_buffer,
