@@ -12,6 +12,10 @@
 
 namespace nnjm {
 
+  typedef nnjm_unordered_map<std::string, int> HashVocabularyType;
+  typedef std::vector<std::string> VectorVocabularyType;
+
+
 /**
  * Compare function used to sort key/value pairs by value in reverse order
  * @param p1
@@ -27,6 +31,21 @@ bool compareValue(const std::pair<std::string, int>& p1,
  */
 class Vocab {
 public:
+  /**
+   * Loads vocabulary from files
+   * @param inputSourceVocabFile The input source vocabulary file name
+   * @param inputTargetVocabFile The input target vocabulary file name
+   * @param outputTargetVocabFile The input target vocabulary file name
+   * @param inputVocabSize The size of the input vocabulary
+   * @param outputVocabSize The size of the output vocabulary
+   */
+  Vocab(std::istream& inputSourceVocabFile,
+        std::istream& inputTargetVocabFile,
+        std::istream& outputTargetVocabFile,
+	const int inputVocabSize,
+	const int outputVocabSize
+	);
+
   /**
    * Constructor.
    * Reads source and target text and builds the input source, input target and
@@ -108,7 +127,30 @@ public:
    */
   const int getTargetEndSentenceId() const;
 
+  /**
+   * Stores vocabulary in three files
+   * @param inputSourceVocabFile The input source vocabulary file
+   * @param inputTargetVocabFile The input target vocabulary file
+   * @param outputTargetVocabFile The output target vocabulary file
+   */
+  void store(std::ostream& inputSourceVocabFile
+	     , std::ostream& inputTargetVocabFile
+	     , std::ostream& outputTargetVocabFile
+	     );
+
 private:
+  /**
+   * Helper for the constructor
+   * Reads vocabulary from file.
+   * @param vocabFile The vocabulary file name
+   * @param vocabSize The vocabulary size
+   * @param hv A hash (string-to-id)
+   * @param vv A vector (id-to-string)
+   */
+  void loadVocab(std::istream& vocabFile
+	    , int const vocabSize
+	    , HashVocabularyType *hv
+	    , VectorVocabularyType *vv);
   /**
    * Helper for the constructor.
    * Reads a text and generates a vocabulary.
@@ -120,7 +162,6 @@ private:
   void makeVocab(std::istream& textFile, const int vocabSize,
                  nnjm_unordered_map<std::string, int>* word2Id,
                  std::vector<std::string>* id2Word);
-
   /** word to id map for input source words */
   nnjm_unordered_map<std::string, int> inputSourceWord2Id_;
   /** id to word map for input source words */
