@@ -28,8 +28,6 @@
 #include <string>
 #include <cuda_runtime.h>
 
-
-
 namespace nnforge
 {
 	namespace cuda
