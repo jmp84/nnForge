@@ -606,9 +606,8 @@ namespace nnforge
 	}
 
 	network_data_smart_ptr neural_network_toolset::load_ann_data(unsigned int ann_id)
-	{
-	  
-	 boost::filesystem::path data_filepath = get_working_data_folder() / get_ann_subfolder_name() / (boost::format("ann_trained_%|1$03d|.data") % ann_id).str();
+	{	  
+		boost::filesystem::path data_filepath = get_working_data_folder() / get_ann_subfolder_name() / (boost::format("ann_trained_%|1$03d|.data") % ann_id).str();
 		network_data_smart_ptr data(new network_data());
 		{
 			boost::filesystem::ifstream in(data_filepath, std::ios_base::in | std::ios_base::binary);
