@@ -257,17 +257,6 @@ std::vector<nnforge::int_option> NnjmToolset::get_int_options() {
   return res;
 }
 
-std::vector<nnforge::float_option> NnjmToolset::get_float_options() {
-  std::vector<nnforge::float_option> res;
-  res.push_back(
-      nnforge::float_option(
-          "reserved-for-validation",
-          &reservedForValidation_,
-          0.0F,
-          "Portion of training data reserved for validation in training."));
-  return res;
-}
-
 void NnjmToolset::prepare_training_data() {
   // setup input configuration
   nnforge::layer_configuration_specific inputConfiguration;
@@ -293,66 +282,31 @@ void NnjmToolset::prepare_training_data() {
 
   // configure the training data writer
   // TODO make a function
-  nnforge::supervised_sparse_data_stream_writer_smart_ptr trainingDataWriter;
   boost::scoped_ptr<std::ofstream> trainingDataWriterTxt;
-  {
-    boost::filesystem::path trainingFilePath =
-        get_working_data_folder() / outputTrainingFileName_;
-    BOOST_LOG_TRIVIAL(info) <<
-        "Writing training data to " << trainingFilePath.string();
-    nnforge_shared_ptr<std::ofstream> trainingFile(
-        new boost::filesystem::ofstream(
-            trainingFilePath,
-            std::ios_base::out |
-            std::ios_base::binary |
-            std::ios_base::trunc));
-    trainingDataWriter =
-        nnforge::supervised_sparse_data_stream_writer_smart_ptr(
-            new nnforge::supervised_sparse_data_stream_writer(
-                trainingFile,
-                inputConfiguration,
-                outputConfiguration));
-    boost::filesystem::path trainingFilePathTxt(trainingFilePath);
-    trainingFilePathTxt.replace_extension(boost::filesystem::path(".txt"));
-    trainingDataWriterTxt.reset(
-        new boost::filesystem::ofstream(trainingFilePathTxt));
-  }
-
-  // configure the validation data writer
-  // TODO make a function
-  nnforge::supervised_sparse_data_stream_writer_smart_ptr validatingDataWriter;
-  boost::scoped_ptr<std::ofstream> validatingDataWriterTxt;
-  if (is_training_with_validation()) {
-    boost::filesystem::path validatingFilePath =
-        get_working_data_folder() / validatingDataFileName_;
-    BOOST_LOG_TRIVIAL(info) <<
-        "Writing validating data to " << validatingFilePath.string();
-    nnforge_shared_ptr<std::ofstream> validatingFile(
-        new boost::filesystem::ofstream(
-            validatingFilePath,
-            std::ios_base::out |
-            std::ios_base::binary |
-            std::ios_base::trunc));
-    validatingDataWriter =
-        nnforge::supervised_sparse_data_stream_writer_smart_ptr(
-            new nnforge::supervised_sparse_data_stream_writer(
-                validatingFile,
-                inputConfiguration,
-                outputConfiguration));
-    boost::filesystem::path validatingFilePathTxt(validatingFilePath);
-    validatingFilePathTxt.replace_extension(boost::filesystem::path(".txt"));
-    validatingDataWriterTxt.reset(
-        new boost::filesystem::ofstream(validatingFilePathTxt));
-  }
+  boost::filesystem::path trainingFilePath =
+      get_working_data_folder() / outputTrainingFileName_;
+  BOOST_LOG_TRIVIAL(info) <<
+      "Writing training data to " << trainingFilePath.string();
+  nnforge_shared_ptr<std::ofstream> trainingFile(
+      new boost::filesystem::ofstream(
+          trainingFilePath,
+          std::ios_base::out |
+          std::ios_base::binary |
+          std::ios_base::trunc));
+  nnforge::supervised_sparse_data_stream_writer trainingDataWriter(
+      trainingFile,
+      inputConfiguration,
+      outputConfiguration);
+  boost::filesystem::path trainingFilePathTxt(trainingFilePath);
+  trainingFilePathTxt.replace_extension(boost::filesystem::path(".txt"));
+  trainingDataWriterTxt.reset(
+      new boost::filesystem::ofstream(trainingFilePathTxt));
 
   // configure input data, output data to be written
   std::vector<float> inputData(targetNgramSize_ - 1);
   std::vector<float> outputData(1);
   unsigned int trainingEntryCountWritten = 0;
-  unsigned int validatingEntryCountWritten = 0;
   std::vector<WordId> trainingNgram(targetNgramSize_ + sourceWindowSize_);
-  nnforge::random_generator gen = nnforge::rnd::get_random_generator();
-  nnforge_uniform_real_distribution<float> dist(0.0F, 1.0F);
 
   // open files containing training data: source, target and alignment
   boost::filesystem::path sourceTextPath =
@@ -380,19 +334,8 @@ void NnjmToolset::prepare_training_data() {
     std::vector<std::vector<std::size_t> > target2SourceAlignment(
         targetTokens.size());
     getTarget2SourceAlignment(alignmentLine, &target2SourceAlignment);
-    // decide whether to use this aligned sentence pair as validation data
-    // or training data.
-    nnforge::supervised_sparse_data_stream_writer_smart_ptr currentDataWriter;
-    bool isAlignedSentencePairValidation;
-    if (dist(gen) < reservedForValidation_) {
-      currentDataWriter = validatingDataWriter;
-      isAlignedSentencePairValidation = true;
-      *validatingDataWriterTxt << targetLine << std::endl;
-    } else {
-      currentDataWriter = trainingDataWriter;
-      isAlignedSentencePairValidation = false;
-      *trainingDataWriterTxt << targetLine << std::endl;
-    }
+    *trainingDataWriterTxt << targetLine << std::endl;
+
     // targetTokenIndex includes targetTokens.size() for the end of sentence
     // marker; the training data is assumed not to have sentence markers
     for (std::size_t targetTokenIndex = 0;
@@ -405,22 +348,14 @@ void NnjmToolset::prepare_training_data() {
       convertToInputSparseData(trainingNgram, &inputData);
       convertToOutputSparseData(trainingNgram, &outputData);
 
-      if (isAlignedSentencePairValidation) {
-        validatingEntryCountWritten++;
-      } else {
-        trainingEntryCountWritten++;
-      }
-      currentDataWriter->write(&(*inputData.begin()),
+      trainingEntryCountWritten++;
+      trainingDataWriter.write(&(*inputData.begin()),
                                &(*outputData.begin()));
     }
   }
 
   BOOST_LOG_TRIVIAL(info) <<
       "Training entries written: " << trainingEntryCountWritten;
-  if (is_training_with_validation()) {
-    BOOST_LOG_TRIVIAL(info) <<
-        "Validation entries written: " << validatingEntryCountWritten;
-  }
 }
 
 void NnjmToolset::prepare_validating_data() {
@@ -564,10 +499,6 @@ nnforge::network_schema_smart_ptr NnjmToolset::get_schema() const {
 nnforge::network_output_type::output_type
     NnjmToolset::get_network_output_type() const {
   return nnforge::network_output_type::type_classifier;
-}
-
-bool NnjmToolset::is_training_with_validation() const {
-  return (reservedForValidation_ > 0.0F);
 }
 
 nnforge::const_error_function_smart_ptr

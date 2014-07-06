@@ -63,13 +63,6 @@ protected:
   virtual std::vector<nnforge::int_option> get_int_options();
 
   /**
-   * Additional float options for this application (nnjm).
-   * These options are read by the neural_network_toolset::parse method.
-   * @return The float options.
-   */
-  virtual std::vector<nnforge::float_option> get_float_options();
-
-  /**
    * Prepares the training data.
    * Reads word aligned parallel text and output training data in binary format
    * to be read by the neural network trainer.
@@ -94,14 +87,6 @@ protected:
    */
   virtual nnforge::network_output_type::output_type
       get_network_output_type() const;
-
-  /**
-   * Whether validation data was used for training (measure error function on
-   * validation data and adapt gradient descent learning weight if error goes
-   * up)
-   * @return True if training used validation data.
-   */
-  virtual bool is_training_with_validation() const;
 
   /**
    * Gets the error function, such as mse, cross-entropy, etc.
