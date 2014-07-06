@@ -29,52 +29,60 @@ NnjmToolset::~NnjmToolset() {
 
 }
 
-  void NnjmToolset::storeVocab() {
+void NnjmToolset::storeVocab() {
+  boost::filesystem::path sourceInputVocabPath =
+      get_working_data_folder() / sourceInputVocabularyFileName_;
+  boost::filesystem::path targetInputVocabPath =
+      get_working_data_folder() / targetInputVocabularyFileName_;
+  boost::filesystem::path targetOutputVocabPath =
+      get_working_data_folder() / targetOutputVocabularyFileName_;
+  boost::filesystem::ofstream sourceInputVocabFile(sourceInputVocabPath);
+  boost::filesystem::ofstream targetInputVocabFile(targetInputVocabPath);
+  boost::filesystem::ofstream targetOutputVocabFile(targetOutputVocabPath);
+  vocab_->store(sourceInputVocabFile,
+                targetInputVocabFile,
+                targetOutputVocabFile);
+}
 
-    boost::filesystem::ofstream sourceInputVocabFile(sourceInputVocabularyFileName_);
-    boost::filesystem::ofstream targetInputVocabFile(targetInputVocabularyFileName_);
-    boost::filesystem::ofstream targetOutputVocabFile(targetOutputVocabularyFileName_);  
-    vocab_->store(sourceInputVocabFile
-		  , targetInputVocabFile
-		  , targetOutputVocabFile
-		  );
+bool NnjmToolset::loadVocab() {
+  boost::filesystem::path sourceInputVocabPath =
+      get_working_data_folder() / sourceInputVocabularyFileName_;
+  boost::filesystem::path targetInputVocabPath =
+      get_working_data_folder() / targetInputVocabularyFileName_;
+  boost::filesystem::path targetOutputVocabPath =
+      get_working_data_folder() / targetOutputVocabularyFileName_;
+  boost::filesystem::ifstream sourceInputVocabFile(sourceInputVocabPath);
+  boost::filesystem::ifstream targetInputVocabFile(targetInputVocabPath);
+  boost::filesystem::ifstream targetOutputVocabFile(targetOutputVocabPath);
+  if (!sourceInputVocabFile.is_open() ||
+      !targetInputVocabFile.is_open() ||
+      !targetOutputVocabFile.is_open()) {
+    BOOST_LOG_TRIVIAL(warning) << "Default vocabulary files not found. Creating...";
+    this->initVocab();
+    return false;
   }
-  bool NnjmToolset::loadVocab() {
-    boost::filesystem::ifstream sourceInputVocabFile(sourceInputVocabularyFileName_);
-    boost::filesystem::ifstream targetInputVocabFile(targetInputVocabularyFileName_); 
-    boost::filesystem::ifstream targetOutputVocabFile(targetOutputVocabularyFileName_);
-    if ( !sourceInputVocabFile.is_open()
-	 || !targetInputVocabFile.is_open()
-	 || !targetOutputVocabFile.is_open()
-	 ) {
-      BOOST_LOG_TRIVIAL(warning) << "Default vocabulary files not found. Creating...";
-      this->initVocab();
-      return false;
-    }
-    vocab_.reset(new Vocab(sourceInputVocabFile
-			   , targetInputVocabFile
-			   , targetOutputVocabFile
-			   , inputVocabSize_
-			   , outputVocabSize_
-			   ));
-    return true;
-  }
+  vocab_.reset(new Vocab(sourceInputVocabFile,
+                         targetInputVocabFile,
+                         targetOutputVocabFile,
+                         inputVocabSize_,
+                         outputVocabSize_));
+  return true;
+}
 
-  void NnjmToolset::initVocab()
- {
-     boost::filesystem::path sourceTextPath =
-       get_input_data_folder() / sourceTextFileName_;
-     boost::filesystem::path targetTextPath =
-       get_input_data_folder() / targetTextFileName_;
-     // TODO handle bad ifstream, exceptions with getline doesn't work
-     boost::filesystem::ifstream sourceTextFile(sourceTextPath);
-     boost::filesystem::ifstream targetTextFile(targetTextPath);     
+void NnjmToolset::initVocab() {
+  boost::filesystem::path sourceTextPath =
+      get_input_data_folder() / sourceTextFileName_;
+  boost::filesystem::path targetTextPath =
+      get_input_data_folder() / targetTextFileName_;
+  // TODO handle bad ifstream, exceptions with getline doesn't work
+  boost::filesystem::ifstream sourceTextFile(sourceTextPath);
+  boost::filesystem::ifstream targetTextFile(targetTextPath);
   if (!vocab_) {
-     vocab_.reset(new Vocab(sourceTextFile,
-			    targetTextFile,
-			    inputVocabSize_,
-			    outputVocabSize_));
-   }
+    vocab_.reset(new Vocab(sourceTextFile,
+                           targetTextFile,
+                           inputVocabSize_,
+                           outputVocabSize_));
+  }
 }
 
 std::vector<nnforge::string_option> NnjmToolset::get_string_options() {
