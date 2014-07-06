@@ -79,7 +79,7 @@ namespace nnforge
    * uniform weight
    */
   inline bool uniform_user_defined_weights(FuzzyBool b = UNSET) {
-    static bool useWeight;
+    static bool useWeight = false;
     if (b != UNSET) 
       useWeight = (b==TRUE)? true: false;
     return useWeight;
@@ -89,7 +89,7 @@ namespace nnforge
    * A helper function that sets/gets the usage of uniform weights defined by user
    */
   inline float uniform_user_defined_weight_boundary(float w=std::numeric_limits<float>::max()){
-    static float weight;
+    static float weight = std::numeric_limits<float>::max();
     if (w < std::numeric_limits<float>::max())
       weight = w;
     return weight;
