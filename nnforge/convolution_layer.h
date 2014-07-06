@@ -72,4 +72,26 @@ namespace nnforge
 		unsigned int input_feature_map_count;
 		unsigned int output_feature_map_count;
 	};
+
+  enum FuzzyBool {TRUE,FALSE,UNSET};
+  /**
+   * A function helper that determines whether to use or not
+   * uniform weight
+   */
+  inline bool uniform_user_defined_weights(FuzzyBool b = UNSET) {
+    static bool useWeight;
+    if (b != UNSET) 
+      useWeight = (b==TRUE)? true: false;
+    return useWeight;
+  };  
+  
+  /**
+   * A helper function that sets/gets the usage of uniform weights defined by user
+   */
+  inline float uniform_user_defined_weight_boundary(float w=std::numeric_limits<float>::max()){
+    static float weight;
+    if (w < std::numeric_limits<float>::max())
+      weight = w;
+    return weight;
+  };  
 }
