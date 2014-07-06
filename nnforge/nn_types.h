@@ -45,4 +45,6 @@
 #define nnforge_regex_match std::tr1::regex_match
 #define nnforge_dynamic_pointer_cast std::tr1::dynamic_pointer_cast
 #define nnforge_array std::tr1::array
+
+#define WEIGHT_UPDATE_THRESHOLD 0.1
 #endif

@@ -28,6 +28,8 @@
 #include <string>
 #include <cuda_runtime.h>
 
+
+
 namespace nnforge
 {
 	namespace cuda
@@ -161,5 +163,14 @@ namespace nnforge
 		};
 
 		typedef nnforge_shared_ptr<layer_updater_cuda> layer_updater_cuda_smart_ptr;
+
+		//Clips a float to [-wmax,wmax]
+		__device__
+		inline float clip_float(float w, float const wmax){
+			float weight = w;
+			if (weight > wmax) weight = wmax;
+			else if (weight < -wmax) weight = -wmax;
+			return weight;
+		}
 	}
 }
