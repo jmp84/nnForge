@@ -46,5 +46,6 @@
 #define nnforge_dynamic_pointer_cast std::tr1::dynamic_pointer_cast
 #define nnforge_array std::tr1::array
 
+//TODO: convert this into an option later
 #define WEIGHT_UPDATE_THRESHOLD 0.1
 #endif

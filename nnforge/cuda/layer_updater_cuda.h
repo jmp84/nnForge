@@ -165,10 +165,9 @@ namespace nnforge
 		//Clips a float to [-wmax,wmax]
 		__device__
 		inline float clip_float(float w, float const wmax){
-			float weight = w;
-			if (weight > wmax) weight = wmax;
-			else if (weight < -wmax) weight = -wmax;
-			return weight;
+			if (w > wmax) return wmax;
+			if (w < -wmax) return -wmax;
+			return w;
 		}
 	}
 }
