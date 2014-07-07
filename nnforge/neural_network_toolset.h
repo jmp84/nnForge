@@ -189,7 +189,7 @@ namespace nnforge
 		unsigned int epoch_count_in_training_set;
 		float weight_decay;
 		// Contains the boundary for the uniform weights 
-		// i.e. generate weights in (-initialize_uniform_weights,initialize_uniform_weights
+		// i.e. generate weights in (-initialize_uniform_weights,initialize_uniform_weights)
 		float initialize_uniform_weights;
 	protected:
 		std::vector<output_neuron_value_set_smart_ptr> run_batch(

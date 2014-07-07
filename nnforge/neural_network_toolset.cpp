@@ -218,7 +218,7 @@ namespace nnforge
 			("load_resume,R", boost::program_options::value<bool>(&load_resume)->default_value(false), "Resume neural network training strating from saved.")
 			("epoch_count_in_training_set", boost::program_options::value<unsigned int>(&epoch_count_in_training_set)->default_value(1), "The whole should be split in this amount of epochs.")
 			("weight_decay", boost::program_options::value<float>(&weight_decay)->default_value(0.0F), "Weight decay.")
-			("initialize_uniform_weights", boost::program_options::value<float>(&initialize_uniform_weights)->default_value(0.05F), "Uniform weight initialization. Set to a value to 0.0F to disable")
+			("initialize_uniform_weights", boost::program_options::value<float>(&initialize_uniform_weights)->default_value(0.00F), "Uniform weight initialization. Set to a value to 0.0F to disable")
 			;
 
 		{

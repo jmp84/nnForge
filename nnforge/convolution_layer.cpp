@@ -255,6 +255,4 @@ namespace nnforge
 
 		return res;
 	}
-
-
 }
