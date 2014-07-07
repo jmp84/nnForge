@@ -161,5 +161,13 @@ namespace nnforge
 		};
 
 		typedef nnforge_shared_ptr<layer_updater_cuda> layer_updater_cuda_smart_ptr;
+
+		//Clips a float to [-wmax,wmax]
+		__device__
+		inline float clip_float(float w, float const wmax){
+			if (w > wmax) return wmax;
+			if (w < -wmax) return -wmax;
+			return w;
+		}
 	}
 }

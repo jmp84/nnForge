@@ -861,14 +861,20 @@ namespace nnforge
 							if (single_elem_per_destination)
 							{
 								float2 current_w = weights[weights_offset3];
-								float new_val1 = current_w.x + lr.x * (sums[k * 4 + i * 2] - weight_decay * current_w.x);
-								float new_val2 = current_w.y + lr.y * (sums[k * 4 + i * 2 + 1] - weight_decay * current_w.y);
+								float upd_val1 = lr.x * (sums[k * 4 + i * 2] - weight_decay * current_w.x);
+								float upd_val2 = lr.y * (sums[k * 4 + i * 2 + 1] - weight_decay * current_w.y);
+								upd_val1 = clip_float(upd_val1,WEIGHT_UPDATE_THRESHOLD);
+								upd_val2 = clip_float(upd_val2, WEIGHT_UPDATE_THRESHOLD);
+								float new_val1 = current_w.x + upd_val1;
+								float new_val2 = current_w.y + upd_val2;
 								weights[weights_offset3] = make_float2(new_val1, new_val2);
 							}
 							else
 							{
 								float upd_val1 = lr.x * sums[k * 4 + i * 2];
 								float upd_val2 = lr.y * sums[k * 4 + i * 2 + 1];
+								upd_val1 = clip_float(upd_val1,WEIGHT_UPDATE_THRESHOLD);
+								upd_val2 = clip_float(upd_val2, WEIGHT_UPDATE_THRESHOLD);
 								atomicAdd((float *)(weights + weights_offset3), upd_val1);
 								atomicAdd((float *)(weights + weights_offset3) + 1, upd_val2);
 							}
@@ -1009,14 +1015,20 @@ namespace nnforge
 								if (single_elem_per_destination)
 								{
 									float2 current_w = weights[weights_offset3];
-									float new_val1 = current_w.x + lr.x * (sums[k * 4 + i * 2] - weight_decay * current_w.x);
-									float new_val2 = current_w.y + lr.y * (sums[k * 4 + i * 2 + 1] - weight_decay * current_w.y);
+									float upd_val1 = lr.x * (sums[k * 4 + i * 2] - weight_decay * current_w.x);
+									float upd_val2 = lr.y * (sums[k * 4 + i * 2 + 1] - weight_decay * current_w.y);
+									upd_val1 = clip_float(upd_val1,WEIGHT_UPDATE_THRESHOLD);
+									upd_val2 = clip_float(upd_val2, WEIGHT_UPDATE_THRESHOLD);
+									float new_val1 = current_w.x + upd_val1;
+									float new_val2 = current_w.y + upd_val2;
 									weights[weights_offset3] = make_float2(new_val1, new_val2);
 								}
 								else
 								{
 									float upd_val1 = lr.x * sums[k * 4 + i * 2];
 									float upd_val2 = lr.y * sums[k * 4 + i * 2 + 1];
+									upd_val1 = clip_float(upd_val1,WEIGHT_UPDATE_THRESHOLD);
+									upd_val2 = clip_float(upd_val2, WEIGHT_UPDATE_THRESHOLD);
 									atomicAdd((float *)(weights + weights_offset3), upd_val1);
 									atomicAdd((float *)(weights + weights_offset3) + 1, upd_val2);
 								}
