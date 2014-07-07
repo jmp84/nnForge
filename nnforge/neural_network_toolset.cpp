@@ -14,6 +14,7 @@
  *  limitations under the License.
  */
 
+#include <math.h>
 #include "neural_network_toolset.h"
 
 #include <boost/program_options.hpp>
@@ -53,6 +54,7 @@
 #include "network_trainer_sgd.h"
 #include "save_resume_network_data_pusher.h"
 #include "network_data_peeker_load_resume.h"
+#include "convolution_layer.h"
 
 namespace nnforge
 {
@@ -216,6 +218,7 @@ namespace nnforge
 			("load_resume,R", boost::program_options::value<bool>(&load_resume)->default_value(false), "Resume neural network training strating from saved.")
 			("epoch_count_in_training_set", boost::program_options::value<unsigned int>(&epoch_count_in_training_set)->default_value(1), "The whole should be split in this amount of epochs.")
 			("weight_decay", boost::program_options::value<float>(&weight_decay)->default_value(0.0F), "Weight decay.")
+			("initialize_uniform_weights", boost::program_options::value<float>(&initialize_uniform_weights)->default_value(0.00F), "Uniform weight initialization. Set to a value to 0.0F to disable")
 			;
 
 		{
@@ -329,6 +332,11 @@ namespace nnforge
 			std::cout << buffer << std::endl;
 		}
 
+		if (initialize_uniform_weights != 0.0F) {
+		  uniform_user_defined_weights(TRUE);
+		  uniform_user_defined_weight_boundary(fabs(initialize_uniform_weights));
+		}
+
 		dump_settings();
 		std::cout << "----------------------------------------" << std::endl;
 
@@ -373,6 +381,7 @@ namespace nnforge
 			std::cout << "load_resume" << "=" << load_resume << std::endl;
 			std::cout << "epoch_count_in_training_set" << "=" << epoch_count_in_training_set << std::endl;
 			std::cout << "weight_decay" << "=" << weight_decay << std::endl;
+			std::cout << "initialize_uniform_weights" << "=" << initialize_uniform_weights << std::endl;
 		}
 		{
 			std::vector<string_option> additional_string_options = get_string_options();
@@ -597,7 +606,7 @@ namespace nnforge
 	}
 
 	network_data_smart_ptr neural_network_toolset::load_ann_data(unsigned int ann_id)
-	{
+	{	  
 		boost::filesystem::path data_filepath = get_working_data_folder() / get_ann_subfolder_name() / (boost::format("ann_trained_%|1$03d|.data") % ann_id).str();
 		network_data_smart_ptr data(new network_data());
 		{

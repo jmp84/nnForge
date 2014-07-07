@@ -72,4 +72,16 @@ namespace nnforge
 		unsigned int input_feature_map_count;
 		unsigned int output_feature_map_count;
 	};
+
+	enum FuzzyBool {TRUE,FALSE,UNSET};
+	/**
+	 * A function helper that determines whether to use or not
+	 * uniform weight
+	 */
+	bool uniform_user_defined_weights(FuzzyBool b);
+
+	/**
+	 * A helper function that sets/gets the usage of uniform weights defined by user
+	 */
+	float uniform_user_defined_weight_boundary(float w);
 }
