@@ -26,6 +26,21 @@
 
 namespace nnforge
 {
+
+	bool uniform_user_defined_weights(FuzzyBool b = UNSET) {
+		static bool useWeight = false;
+		if (b != UNSET)
+			useWeight = (b==TRUE)? true: false;
+		return useWeight;
+	};
+
+	float uniform_user_defined_weight_boundary(float w=std::numeric_limits<float>::max()){
+		static float weight = std::numeric_limits<float>::max();
+		if (w < std::numeric_limits<float>::max())
+			weight = w;
+		return weight;
+	};
+
 	// {8AD07635-DDFE-43B4-B26A-15CA19155A65}
 	const boost::uuids::uuid convolution_layer::layer_guid =
 		{ 0x8a, 0xd0, 0x76, 0x35
@@ -147,32 +162,32 @@ namespace nnforge
 		random_generator& generator) const
 	{
 
-	  unsigned int input_neuron_count = input_feature_map_count;
-	  std::for_each(window_sizes.begin(), window_sizes.end(), input_neuron_count *= boost::lambda::_1);
+		unsigned int input_neuron_count = input_feature_map_count;
+		std::for_each(window_sizes.begin(), window_sizes.end(), input_neuron_count *= boost::lambda::_1);
 	  
-	  if (!uniform_user_defined_weights()) {
-	    //default hardwired randomization (normal distribution)
-	    float standard_deviation = 1.0F / sqrtf(static_cast<float>(input_neuron_count));
-	    float max_abs_value = 3.0F * standard_deviation;
-	    nnforge_normal_distribution<float> nd(0.0F, standard_deviation);
-	    //nnforge_uniform_real_distribution<float> nd(-2.0F * standard_deviation, 2.0F * standard_deviation);
-	    for(unsigned int i = 0; i < data[0].size(); ++i) {
-	      float val = nd(generator);
-	      while (fabs(val) > max_abs_value)
-		val = nd(generator);
-	      data[0][i] = val;
-	    }
-	  } else {
-	    //uniform with boundaries defined by user
-	    float w=uniform_user_defined_weight_boundary();
-	    nnforge_uniform_real_distribution<float> nd(-w, w);
-	    for(unsigned int i = 0; i < data[0].size(); ++i) {
-	      float val = nd(generator);
-	      data[0][i] = val;
-	    }
-	  }
+		if (!uniform_user_defined_weights()) {
+			//default hardwired randomization (normal distribution)
+			float standard_deviation = 1.0F / sqrtf(static_cast<float>(input_neuron_count));
+			float max_abs_value = 3.0F * standard_deviation;
+			nnforge_normal_distribution<float> nd(0.0F, standard_deviation);
+			//nnforge_uniform_real_distribution<float> nd(-2.0F * standard_deviation, 2.0F * standard_deviation);
+			for(unsigned int i = 0; i < data[0].size(); ++i) {
+				float val = nd(generator);
+				while (fabs(val) > max_abs_value)
+					val = nd(generator);
+				data[0][i] = val;
+			}
+		} else {
+			//uniform with boundaries defined by user
+			float w=uniform_user_defined_weight_boundary();
+			nnforge_uniform_real_distribution<float> ud(-w, w);
+			for(unsigned int i = 0; i < data[0].size(); ++i) {
+				float val = ud(generator);
+				data[0][i] = val;
+			}
+		}
 
-	  std::fill(data[1].begin(), data[1].end(), 0.0F);
+		std::fill(data[1].begin(), data[1].end(), 0.0F);
 	}
 
 	float convolution_layer::get_forward_flops(const layer_configuration_specific& input_configuration_specific) const
@@ -240,4 +255,6 @@ namespace nnforge
 
 		return res;
 	}
+
+
 }
