@@ -21,8 +21,9 @@
 #endif
 
 // TODO review int or unsigned int or size_t or etc.
-namespace nnjm {
-  typedef int WordId;
+namespace nnjm
+{
+	typedef int WordId;
 }
 
 #endif /* NNJM_TYPES_H_ */
