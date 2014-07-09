@@ -42,18 +42,18 @@ namespace nnforge
 	void validate_progress_network_data_pusher::push(const training_task_state& task_state)
 	{
 		tester->set_data(task_state.data);
+		testing_res.reset(new testing_complete_result_set(ef, actual_output_neuron_value_set));
 
-		testing_complete_result_set testing_res(ef, actual_output_neuron_value_set);
 		tester->test(
 			*reader,
-			testing_res);
+			*testing_res);
 
 		unsigned int last_index = static_cast<unsigned int>(task_state.history.size()) - 1;
 
 		std::cout << "# " << task_state.index_peeked
 			<< ", Epoch " << task_state.get_current_epoch()
 			<< ", Validating ";
-		visualizer->dump(std::cout, testing_res);
-		std::cout << std::endl;
+		visualizer->dump(std::cout, *testing_res);
+		const_cast<training_task_state&>(task_state).history.push_back(getTestingResults()->tr);
 	}
 }

@@ -48,4 +48,9 @@
 
 //TODO: convert this into an option later
 #define WEIGHT_UPDATE_THRESHOLD 0.1
+
+//Used for boolean helper functions with static bool
+namespace nnforge {
+	enum FuzzyBool {TRUE,FALSE,UNSET};
+}
 #endif

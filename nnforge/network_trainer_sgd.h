@@ -42,6 +42,7 @@ namespace nnforge
 		virtual void initialize_train(supervised_data_reader& reader);
 
 		virtual unsigned int get_max_batch_size() const;
+		virtual float get_global_learning_rate(unsigned int epoch) const;
 
 		std::pair<network_data_smart_ptr, std::string> prepare_learning_rates(unsigned int epoch);
 

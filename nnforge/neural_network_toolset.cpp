@@ -75,6 +75,13 @@ namespace nnforge
 	const char * neural_network_toolset::trained_ann_index_extractor_pattern = "^ann_trained_(\\d+)\\.data$";
 	const char * neural_network_toolset::logfile_name = "log.txt";
 
+	bool use_learning_rate_decay_sgd_nll(enum FuzzyBool b) {
+		static bool use_nll=false;
+		if (b != UNSET) 
+			use_nll = (b == TRUE)? true: false; 
+		return use_nll;
+	}
+
 	neural_network_toolset::neural_network_toolset(factory_generator_smart_ptr factory)
 		: factory(factory)
 	{
@@ -205,7 +212,8 @@ namespace nnforge
 			("per_layer_mu", boost::program_options::value<bool>(&per_layer_mu)->default_value(false), "Mu is calculated for each layer separately.")
 			("learning_rate,L", boost::program_options::value<float>(&learning_rate)->default_value(0.02F), "Global learning rate, Eta/Mu ratio for Stochastic Diagonal Levenberg Marquardt.")
 			("learning_rate_decay_tail", boost::program_options::value<unsigned int>(&learning_rate_decay_tail_epoch_count)->default_value(0), "Number of tail iterations with gradually lowering learning rates.")
-			("learning_rate_decay_rate", boost::program_options::value<float>(&learning_rate_decay_rate)->default_value(0.5F), "Degradation of learning rate at each tail epoch.")
+			("learning_rate_decay_rate", boost::program_options::value<float>(&learning_rate_decay_rate)->default_value(0.5F), "Degradation of learning rate at each tail epoch, if learning_rate_decay_error is false or not using SGD. Otherwise it is applied if NLL increases.") 
+			("learning_rate_decay_sgd_nll", boost::program_options::value<bool>(&learning_rate_decay_sgd_nll)->default_value(false), "If set to true, SGD algorithm will multiply learning rate by learning_rate_decay_rate if NLL increases.")
 			("learning_rate_rise_head", boost::program_options::value<unsigned int>(&learning_rate_rise_head_epoch_count)->default_value(0), "Number of head iterations with gradually increasing learning rates.")
 			("learning_rate_rise_rate", boost::program_options::value<float>(&learning_rate_rise_rate)->default_value(0.1F), "Increase factor of learning rate at each head epoch (<1.0).")
 			("batch_offset", boost::program_options::value<unsigned int>(&batch_offset)->default_value(0), "shift initial ANN ID when batch training.")
@@ -337,6 +345,9 @@ namespace nnforge
 		  uniform_user_defined_weight_boundary(fabs(initialize_uniform_weights));
 		}
 
+		if (learning_rate_decay_sgd_nll)
+				use_learning_rate_decay_sgd_nll(TRUE);
+
 		dump_settings();
 		std::cout << "----------------------------------------" << std::endl;
 
@@ -369,6 +380,7 @@ namespace nnforge
 			std::cout << "learning_rate" << "=" << learning_rate << std::endl;
 			std::cout << "learning_rate_decay_tail" << "=" << learning_rate_decay_tail_epoch_count << std::endl;
 			std::cout << "learning_rate_decay_rate" << "=" << learning_rate_decay_rate << std::endl;
+			std::cout << "learning_rate_decay_sgd_nll" << "=" << learning_rate_decay_sgd_nll << std::endl;
 			std::cout << "learning_rate_rise_head" << "=" << learning_rate_rise_head_epoch_count << std::endl;
 			std::cout << "learning_rate_rise_rate" << "=" << learning_rate_rise_rate << std::endl;
 			std::cout << "batch_offset" << "=" << batch_offset << std::endl;
@@ -1204,7 +1216,6 @@ namespace nnforge
 				get_error_function(),
 				validating_data_reader_and_sample_count.second)));
 		}
-
 		return res;
 	}
 
