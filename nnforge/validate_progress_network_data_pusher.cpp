@@ -57,4 +57,10 @@ namespace nnforge
 		std::cout << std::endl;
 		const_cast<training_task_state&>(task_state).history.push_back(getTestingResults()->tr);
 	}
+
+	boost::shared_ptr<testing_complete_result_set>&
+	validate_progress_network_data_pusher::getTestingResults()
+	{
+		return testing_res;
+	}
 }

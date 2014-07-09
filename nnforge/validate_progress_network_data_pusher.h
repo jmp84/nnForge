@@ -39,9 +39,11 @@ namespace nnforge
 		virtual ~validate_progress_network_data_pusher();
 
 		virtual void push(const training_task_state& task_state);
-		// returns reference to shared pointer testing_res.
-		boost::shared_ptr<testing_complete_result_set>&getTestingResults()
-			{ return testing_res;}
+
+		/**
+		 * returns reference to shared pointer testing_res.
+		 */
+		boost::shared_ptr<testing_complete_result_set>& getTestingResults();
 	protected:
 		network_tester_smart_ptr tester;
 		supervised_data_reader_smart_ptr reader;
