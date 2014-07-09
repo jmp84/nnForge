@@ -42,7 +42,7 @@ namespace nnforge
 		network_data_pusher& pusher)
 	{
 		unsigned int reader_epoch_id = 0;
-
+		current_error = previous_error = std::numeric_limits<float>::max();
 		initialize_train(reader);
 		unsigned int max_batch_size = get_max_batch_size();
 
@@ -94,6 +94,13 @@ namespace nnforge
 
 			for(int i = 0; i < task_list.size(); ++i)
 				progress_pusher.push(task_list[i]);
+
+			// We now track the validating error, i.e. validating NLL for SGD.
+			previous_error = current_error;
+			current_error = task_list.back().history.back()->get_error();
+			// The last task corresponds to testing.
+			// It needs to be deleted before continuing
+			task_list.back().history.pop_back(); 
 
 			for(int i = static_cast<int>(task_list.size()) - 1; i >= 0; --i)
 			{

@@ -73,7 +73,6 @@ namespace nnforge
 		unsigned int output_feature_map_count;
 	};
 
-	enum FuzzyBool {TRUE,FALSE,UNSET};
 	/**
 	 * A function helper that determines whether to use or not
 	 * uniform weight

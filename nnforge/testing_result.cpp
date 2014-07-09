@@ -43,9 +43,12 @@ namespace nnforge
 	{
 		++entry_count;
 		cumulative_error += static_cast<double>(ef->calculate_error(actual_values, predicted_values, neuron_count));
-		// debug jmp84
-		std::cout << "individual instance error: " << static_cast<double>(ef->calculate_error(actual_values, predicted_values, neuron_count)) << std::endl;
-		// debug jmp84
+		// TODO jmp84: we need this until we dump NLL per sentence somehow.
+		std::cout << "individual instance error: " <<
+				static_cast<double>(ef->calculate_error(
+						actual_values,
+						predicted_values,
+						neuron_count)) << std::endl;
 	}
 
 	unsigned int testing_result::get_entry_count() const

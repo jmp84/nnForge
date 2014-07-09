@@ -43,6 +43,13 @@ namespace nnforge
 
 		virtual unsigned int get_max_batch_size() const;
 
+		// This implementation allows to modify learning rate 
+		// if the Validating NLL gets worse (standard learning rate update
+		// is also supported).
+		// TODO: we can move this back to network_trainer
+		// and allow other algorithms to use this option.
+		virtual float get_global_learning_rate(unsigned int epoch) const;
+
 		std::pair<network_data_smart_ptr, std::string> prepare_learning_rates(unsigned int epoch);
 
 	private:

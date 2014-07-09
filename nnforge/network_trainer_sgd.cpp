@@ -21,6 +21,7 @@
 #include <limits>
 
 #include "neural_network_exception.h"
+#include "neural_network_toolset.h"
 
 namespace nnforge
 {
@@ -77,8 +78,9 @@ namespace nnforge
 
 	std::pair<network_data_smart_ptr, std::string> network_trainer_sgd::prepare_learning_rates(unsigned int epoch)
 	{
-		float learning_rate = get_global_learning_rate(static_cast<unsigned int>(epoch));
-
+		std::cout << "Old learning rate..." << learning_rate;
+		learning_rate = get_global_learning_rate(static_cast<unsigned int>(epoch));
+		std::cout << ", new learning rate..." << learning_rate << std::endl;
 		network_data_smart_ptr lr(new network_data(*schema));
 		lr->fill(learning_rate);
 
@@ -96,4 +98,14 @@ namespace nnforge
 	{
 		updater->set_input_configuration_specific(reader.get_input_configuration());
 	}
+
+	float network_trainer_sgd::get_global_learning_rate(unsigned int epoch) const
+	{
+		if (use_learning_rate_decay_sgd_nll())
+			return (current_error <= previous_error)
+				? learning_rate: learning_rate * learning_rate_decay_rate;
+
+		return network_trainer::get_global_learning_rate(epoch);
+	}
+
 }

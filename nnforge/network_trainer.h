@@ -45,11 +45,15 @@ namespace nnforge
 		float learning_rate_decay_rate;
 		unsigned int learning_rate_rise_head_epoch_count;
 		float learning_rate_rise_rate;
+		// Error for previous epoch
+		float previous_error; 
+		// Error for current epoch
+		float current_error; 
 
 	protected:
 		network_trainer(network_schema_smart_ptr schema);
 
-		float get_global_learning_rate(unsigned int epoch) const;
+		virtual float get_global_learning_rate(unsigned int epoch) const;
 
 		virtual void initialize_train(supervised_data_reader& reader) = 0;
 

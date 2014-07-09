@@ -40,11 +40,16 @@ namespace nnforge
 
 		virtual void push(const training_task_state& task_state);
 
+		/**
+		 * returns reference to shared pointer testing_res.
+		 */
+		boost::shared_ptr<testing_complete_result_set>& getTestingResults();
 	protected:
 		network_tester_smart_ptr tester;
 		supervised_data_reader_smart_ptr reader;
 		output_neuron_value_set_smart_ptr actual_output_neuron_value_set;
 		testing_complete_result_set_visualizer_smart_ptr visualizer;
+		boost::shared_ptr<testing_complete_result_set> testing_res;
 		const_error_function_smart_ptr ef;
 	};
 }

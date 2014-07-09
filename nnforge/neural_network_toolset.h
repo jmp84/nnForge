@@ -191,6 +191,9 @@ namespace nnforge
 		// Contains the boundary for the uniform weights 
 		// i.e. generate weights in (-initialize_uniform_weights,initialize_uniform_weights)
 		float initialize_uniform_weights;
+		// Apply decay to learning rate if NLL
+		// for current epoch is worse than previous epoch
+		bool learning_rate_decay_sgd_nll;
 	protected:
 		std::vector<output_neuron_value_set_smart_ptr> run_batch(
 			supervised_data_reader& reader,
@@ -268,4 +271,9 @@ namespace nnforge
 		neural_network_toolset();
 		neural_network_toolset(const neural_network_toolset&);
 	};
+
+	// Helper function that returns whether learning_rate 
+	// must be updated if NLL gets worse (true) or rely on
+	// default learning rate (false). 
+	bool use_learning_rate_decay_sgd_nll(enum FuzzyBool b=UNSET);
 }
