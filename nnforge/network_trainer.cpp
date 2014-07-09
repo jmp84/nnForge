@@ -95,6 +95,7 @@ namespace nnforge
 			for(int i = 0; i < task_list.size(); ++i)
 				progress_pusher.push(task_list[i]);
 
+			// We now track the validating error, i.e. validating NLL for SGD.
 			previous_error = current_error;
 			current_error = task_list.back().history.back()->get_error();
 			// The last task corresponds to testing.
