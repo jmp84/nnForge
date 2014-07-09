@@ -22,56 +22,64 @@
  * We use trivial logging.
  * Only messages with severity greater or equal to info are logged.
  */
-void initLog() {
-  boost::log::core::get()->set_filter
-      (
-          boost::log::trivial::severity >= boost::log::trivial::info
-      );
+void initLog()
+{
+	boost::log::core::get()->set_filter
+			(
+					boost::log::trivial::severity >= boost::log::trivial::info
+			);
 }
 
 /**
  * Reimplementation of the nnjm paper (BBN paper at ACL 2014 on
  * neural network joint model for machine translation, to appear)
  */
-int main(int argc, char* argv[]) {
-  initLog();
-  //try {
-    #ifdef NNFORGE_CUDA_BACKEND_ENABLED
-    nnforge::cuda::cuda::init();
-    #else
-    nnforge::plain::plain::init();
-    #endif
+int main(int argc, char* argv[])
+{
+	initLog();
+	try
+	{
+		#ifdef NNFORGE_CUDA_BACKEND_ENABLED
+		nnforge::cuda::cuda::init();
+		#else
+		nnforge::plain::plain::init();
+		#endif
 
-    #ifdef NNFORGE_CUDA_BACKEND_ENABLED
-    nnjm::NnjmToolset ts(
-        nnforge::factory_generator_smart_ptr(
-            new nnforge::cuda::factory_generator_cuda()));
-    #else
-    nnjm::NnjmToolset ts(
-        nnforge::factory_generator_smart_ptr(
-            new nnforge::plain::factory_generator_plain()));
-    #endif
+		#ifdef NNFORGE_CUDA_BACKEND_ENABLED
+		nnjm::NnjmToolset ts(
+				nnforge::factory_generator_smart_ptr(
+						new nnforge::cuda::factory_generator_cuda()));
+		#else
+		nnjm::NnjmToolset ts(
+				nnforge::factory_generator_smart_ptr(
+						new nnforge::plain::factory_generator_plain()));
+		#endif
 
-    if (ts.parse(argc, argv)) {
-      const std::string& action = ts.get_action();
-      if (action == "create_vocab") {
-	ts.initVocab();
-	ts.storeVocab();
+		if (ts.parse(argc, argv))
+		{
+			const std::string& action = ts.get_action();
+			if (action == "create_vocab")
+			{
+				ts.initVocab();
+				ts.storeVocab();
+				return 0;
+			}
+			if (
+					action == "prepare_training_data" ||
+					action == "prepare_testing_data" ||
+					action == "prepare_validating_data" ||
+					action == "create")
+			{
+				//init vocabulary passing
+				ts.loadVocab();
+			}
+			ts.do_action();
+		}
+	}
+	catch (const std::exception& e)
+	{
+		std::cout << "Exception caught: " << e.what() << std::endl;
+		return 1;
+	}
 	return 0;
-      }
-      if (action == "prepare_training_data" ||
-          action == "prepare_testing_data" ||
-          action == "prepare_validating_data" ||
-          action == "create") {
-	//init vocabulary passing
-        ts.loadVocab();
-
-      }
-      ts.do_action();
-    }
-//  } catch (const std::exception& e) {
-//    std::cout << "Exception caught: " << e.what() << std::endl;
-//    return 1;
-//  }
-  return 0;
 }
