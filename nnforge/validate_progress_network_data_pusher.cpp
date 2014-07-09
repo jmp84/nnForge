@@ -54,6 +54,7 @@ namespace nnforge
 			<< ", Epoch " << task_state.get_current_epoch()
 			<< ", Validating ";
 		visualizer->dump(std::cout, *testing_res);
+		std::cout << std::endl;
 		const_cast<training_task_state&>(task_state).history.push_back(getTestingResults()->tr);
 	}
 }
