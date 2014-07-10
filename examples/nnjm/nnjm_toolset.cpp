@@ -526,7 +526,7 @@ namespace nnjm
 						new nnforge::convolution_layer(
 								std::vector<unsigned int>(
 										1,
-										targetNgramSize_ - 1 + sourceWindowSize
+										targetNgramSize_ - 1 + sourceWindowSize_
 										),
 										continuousSpaceDimension_,
 										hiddenLayerSize_)));
