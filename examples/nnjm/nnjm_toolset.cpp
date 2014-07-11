@@ -512,7 +512,21 @@ namespace nnjm
 	{
 		nnforge::network_schema_smart_ptr schema(new nnforge::network_schema());
 
-		// shared mapping layer: projects words to continuous space
+		// The input will be s source words + t-1 target words.
+		// The output predicts t-th word.
+		// The input dimension per word is |Vocabulary_{input}|. bbn:16K + 16K
+		// The output dimension is the |Vocabulary_{output}|. bbn: 32K
+
+		// The network schema is the following:
+		// shared mapping layer: projects individual
+		// words to continuous space. The size of the feature input
+		// is the size of the vocabulary. The size of the feature output
+		// is the continuous space dimension.
+		// The mapping is "shared" because the convolution layer is the
+		// same for every word (hence the trained weights will be the same).
+		// Window: 1 word.
+		// Input feature size: |Vocabulary_{input}|
+		// Output feature size: continuous space dimension. bbn: 192.
 		schema->add_layer(
 				nnforge::const_layer_smart_ptr(
 						new nnforge::convolution_layer(
@@ -520,7 +534,11 @@ namespace nnjm
 								vocab_->getInputVocabSize(),
 								continuousSpaceDimension_)));
 
-		// tanh layer
+		// Convolution layer connecting the input (s+t words
+		// in the continuous space dimension)
+		// Window: s+t-1 words.
+		// Input size: continuous space
+		// Output size: hidden layer size (512 features in bbn paper)
 		schema->add_layer(
 				nnforge::const_layer_smart_ptr(
 						new nnforge::convolution_layer(
@@ -530,29 +548,46 @@ namespace nnjm
 										),
 										continuousSpaceDimension_,
 										hiddenLayerSize_)));
+
+		// tanh layer:
+		// Input size:  hidden layer size
+		// Output size: hidden layer size
 		schema->add_layer(
 				nnforge::const_layer_smart_ptr(
 						new nnforge::hyperbolic_tangent_layer()));
 
-		// second tanh layer
-		// second tanh layer is optional for speed
+
+		//Convolution matrix:
+		// window: 1
+		// Input size:  hidden layer size
+		// Output size: hidden layer size
 		schema->add_layer(
 				nnforge::const_layer_smart_ptr(
 						new nnforge::convolution_layer(
 								std::vector<unsigned int>(1, 1),
 								hiddenLayerSize_,
 								hiddenLayerSize_)));
+
+		// second tanh layer
+		// Input size: hidden layer size
+		// Output size: hidden layer size
 		schema->add_layer(
 				nnforge::const_layer_smart_ptr(
 						new nnforge::hyperbolic_tangent_layer()));
 
 		// output layer
+		// Input size: hidden layer size
+		// Output size: |Vocabulary_{output}|
 		schema->add_layer(
 				nnforge::const_layer_smart_ptr(
 						new nnforge::convolution_layer(
 								std::vector<unsigned int>(1, 1),
 								hiddenLayerSize_,
 								vocab_->getOutputVocabSize())));
+
+		// softmax: produces normalized probability distribution
+		// Input size:  |Vocabulary_{output}|
+		// Output size: |Vocabulary_{output}|
 		schema->add_layer(
 				nnforge::const_layer_smart_ptr(
 						new nnforge::softmax_layer()));
