@@ -739,6 +739,13 @@ namespace nnjm
 				target2SourceAlignment->end(),
 				std::vector<std::size_t>());
 		std::vector<std::string> links;
+		// handles case when empty alignment
+		// in that case boost::split produces an array with one empty elt
+		// see http://boost.2283326.n4.nabble.com/Result-of-boost-split-against-empty-string-changed-in-post-1-45-release-td4631147.html
+		if (alignmentLine.empty())
+		{
+			return;
+		}
 		boost::split(links, alignmentLine, boost::is_any_of(" "));
 		BOOST_FOREACH(const std::string& link, links)
 		{
