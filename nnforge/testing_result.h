@@ -36,10 +36,11 @@ namespace nnforge
 		float flops;
 		float time_to_complete_seconds;
 
+		void add_error(float sample_error);
+
 		void add_error(
-			const float * actual_values,
-			const float * predicted_values,
-			unsigned int neuron_count);
+			double cumulative_error,
+			unsigned int entry_count);
 
 		unsigned int get_entry_count() const;
 

@@ -88,12 +88,10 @@ namespace nnforge
 				current_input_elem_id += window_x;
 
 				#pragma unroll
-				for(int i = 0; i < FEATURE_MAP_BLOCK_SIZE; ++i)
-					res[i] = -1.0e37F;
-				#pragma unroll
 				for(int i = 1; i < FEATURE_MAP_BLOCK_SIZE; ++i)
 					item_valid[i - 1] = (base_feature_map_id + i < feature_map_count);
 
+				bool init_required = true;
 				for(int input_w = 0; input_w < (DIMENSION_COUNT > 3 ? subsampling_sizes[3] : 1); ++input_w)
 				{
 					for(int input_z = 0; input_z < (DIMENSION_COUNT > 2 ? subsampling_sizes[2] : 1); ++input_z)
@@ -111,13 +109,14 @@ namespace nnforge
 								#pragma unroll
 								for(int i = 0; i < FEATURE_MAP_BLOCK_SIZE; ++i)
 								{
-									if (new_val[i] > res[i])
+									if (init_required || (new_val[i] > res[i]))
 									{
 										res[i] = new_val[i];
 										max_pos[i] = current_input_elem_id + input_neuron_count_per_feature_map * i;
 									}
 								}
 								current_input_elem_id += input_sizes[0];
+								init_required = false;
 							}
 							else
 							{
@@ -215,6 +214,9 @@ namespace nnforge
 				std::vector<cuda_memobject_smart_ptr>& dynamic_memobjects,
 				unsigned int entry_count)
 			{
+				if (offset_input_entry_id > 0)
+					throw neural_network_exception("max_subsampling_layer_updater_cuda is not able to run using offset");
+
 				const float * input = *input_neurons_buffer;
 				float * output = *output_neurons_buffer;
 				int * max_positions = (int *)((void *)(*additional_buffers[0]));
@@ -287,9 +289,6 @@ namespace nnforge
 
 			virtual void updater_configured()
 			{
-				if (!different_input)
-					throw neural_network_exception("max_subsampling_layer_updater_cuda is not able to run using the same input");
-
 				nnforge_shared_ptr<const max_subsampling_layer> layer_derived = nnforge_dynamic_pointer_cast<const max_subsampling_layer>(layer_schema);
 
 				for(int i = 0; i < dimension_count; ++i)

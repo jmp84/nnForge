@@ -29,7 +29,6 @@
 #include "layer_data_configuration.h"
 #include "data_transformer.h"
 #include "data_transformer_util.h"
-#include "weight_vector_bound.h"
 #include "normalize_data_transformer.h"
 #include "error_function.h"
 #include "network_trainer.h"
@@ -71,8 +70,6 @@ namespace nnforge
 		virtual network_schema_smart_ptr get_schema() const = 0;
 
 		virtual std::map<unsigned int, float> get_dropout_rate_map() const;
-
-		virtual std::map<unsigned int, weight_vector_bound> get_weight_vector_bound_map() const;
 
 		virtual boost::filesystem::path get_input_data_folder() const;
 
@@ -139,6 +136,8 @@ namespace nnforge
 
 		virtual unsigned int get_classifier_visualizer_top_n() const;
 
+		virtual std::vector<unsigned int> get_snapshot_data_dimension_list(unsigned int original_dimension_count) const;
+
 	protected:
 		static const char * training_data_filename;
 		static const char * training_randomized_data_filename;
@@ -164,6 +163,7 @@ namespace nnforge
 
 		std::string action;
 		std::string snapshot_extension;
+		std::string snapshot_extension_video;
 		unsigned int ann_count;
 		unsigned int training_epoch_count;
 		unsigned int snapshot_count;
@@ -176,7 +176,6 @@ namespace nnforge
 		bool per_layer_mu;
 		float mu_increase_factor;
 		unsigned int batch_offset;
-		std::string snapshot_mode;
 		unsigned int snapshot_video_fps;
 		int test_validate_ann_index;
 		unsigned int snapshot_ann_index;
@@ -191,9 +190,13 @@ namespace nnforge
 		// Contains the boundary for the uniform weights 
 		// i.e. generate weights in (-initialize_uniform_weights,initialize_uniform_weights)
 		float initialize_uniform_weights;
-		// Apply decay to learning rate if NLL
+		// Apply decay to learning rate if validating NLL
 		// for current epoch is worse than previous epoch
 		bool learning_rate_decay_sgd_nll;
+		unsigned int snapshot_scale;
+		unsigned int batch_size;
+		float momentum;
+
 	protected:
 		std::vector<output_neuron_value_set_smart_ptr> run_batch(
 			supervised_data_reader& reader,
