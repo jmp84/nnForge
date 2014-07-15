@@ -115,6 +115,13 @@ namespace nnforge
 				int elem_count,
 				cudaStream_t cuda_stream);
 
+			static void set_with_value(
+				const cuda_running_configuration& cuda_config,
+				int * buf_with_aligned_size,
+				int v,
+				int elem_count,
+				cudaStream_t cuda_stream);
+
 			static void multiply_by_value(
 				const cuda_running_configuration& cuda_config,
 				float * buf_with_aligned_size,
@@ -124,6 +131,15 @@ namespace nnforge
 
 			static void apply_weight_decay(
 				const cuda_running_configuration& cuda_config,
+				const float * learning_rates_with_aligned_size,
+				float * weights_with_aligned_size,
+				float weight_decay,
+				int elem_count,
+				cudaStream_t cuda_stream);
+
+			static void apply_gradient_with_weight_decay(
+				const cuda_running_configuration& cuda_config,
+				const float * gradient_with_aligned_size,
 				const float * learning_rates_with_aligned_size,
 				float * weights_with_aligned_size,
 				float weight_decay,

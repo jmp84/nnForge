@@ -203,8 +203,9 @@ namespace nnforge
 			("ann_count,N", boost::program_options::value<unsigned int>(&ann_count)->default_value(1), "amount of networks to train.")
 			("training_epoch_count,E", boost::program_options::value<unsigned int>(&training_epoch_count)->default_value(50), "amount of epochs to perform during single ANN training.")
 			("snapshot_count", boost::program_options::value<unsigned int>(&snapshot_count)->default_value(100), "amount of snapshots to generate.")
-			("snapshot_extension", boost::program_options::value<std::string>(&snapshot_extension)->default_value("jpg"), "Extension (type) of the files for neuron values snapshots.")
-			("snapshot_mode", boost::program_options::value<std::string>(&snapshot_mode)->default_value("image"), "Type of the neuron values snapshot to generate (image, video).")
+			("snapshot_extension", boost::program_options::value<std::string>(&snapshot_extension)->default_value("jpg"), "Extension (type) of the files for neuron values snapshots stored as images.")
+			("snapshot_extension_video", boost::program_options::value<std::string>(&snapshot_extension_video)->default_value("avi"), "Extension (type) of the files for neuron values snapshots stored as videos.")
+			("snapshot_scale", boost::program_options::value<unsigned int>(&snapshot_scale)->default_value(1), "Scale snapshots by this value.")
 			("snapshot_video_fps", boost::program_options::value<unsigned int>(&snapshot_video_fps)->default_value(5), "Frames per second when saving video snapshot.")
 			("snapshot_ann_index", boost::program_options::value<unsigned int>(&snapshot_ann_index)->default_value(0), "Index of ANN for snapshots.")
 			("mu_increase_factor", boost::program_options::value<float>(&mu_increase_factor)->default_value(1.0F), "Mu increases by this ratio each epoch.")
@@ -227,6 +228,8 @@ namespace nnforge
 			("epoch_count_in_training_set", boost::program_options::value<unsigned int>(&epoch_count_in_training_set)->default_value(1), "The whole should be split in this amount of epochs.")
 			("weight_decay", boost::program_options::value<float>(&weight_decay)->default_value(0.0F), "Weight decay.")
 			("initialize_uniform_weights", boost::program_options::value<float>(&initialize_uniform_weights)->default_value(0.00F), "Uniform weight initialization. Set to a value to 0.0F to disable")
+			("batch_size,B", boost::program_options::value<unsigned int>(&batch_size)->default_value(1), "Training mini-batch size.")
+			("momentum,M", boost::program_options::value<float>(&momentum)->default_value(0.0F), "Momentum in training.")
 			;
 
 		{
@@ -328,6 +331,7 @@ namespace nnforge
 		}
 
 		boost::filesystem::path logfile_path = get_working_data_folder() / logfile_name;
+		std::cout << "Forking output log to " << logfile_path.string() << "..." << std::endl;
 		out_to_log_duplicator_smart_ptr = nnforge_shared_ptr<stream_duplicator>(new stream_duplicator(logfile_path));
 
 		{
@@ -371,7 +375,8 @@ namespace nnforge
 			std::cout << "training_epoch_count" << "=" << training_epoch_count << std::endl;
 			std::cout << "snapshot_count" << "=" << snapshot_count << std::endl;
 			std::cout << "snapshot_extension" << "=" << snapshot_extension << std::endl;
-			std::cout << "snapshot_mode" << "=" << snapshot_mode << std::endl;
+			std::cout << "snapshot_extension_video" << "=" << snapshot_extension_video << std::endl;
+			std::cout << "snapshot_scale" << "=" << snapshot_scale << std::endl;
 			std::cout << "snapshot_video_fps" << "=" << snapshot_video_fps << std::endl;
 			std::cout << "snapshot_ann_index" << "=" << snapshot_ann_index << std::endl;
 			std::cout << "mu_increase_factor" << "=" << mu_increase_factor << std::endl;
@@ -394,6 +399,8 @@ namespace nnforge
 			std::cout << "epoch_count_in_training_set" << "=" << epoch_count_in_training_set << std::endl;
 			std::cout << "weight_decay" << "=" << weight_decay << std::endl;
 			std::cout << "initialize_uniform_weights" << "=" << initialize_uniform_weights << std::endl;
+			std::cout << "batch_size" << "=" << batch_size << std::endl;
+			std::cout << "momentum" << "=" << momentum << std::endl;
 		}
 		{
 			std::vector<string_option> additional_string_options = get_string_options();
@@ -477,9 +484,7 @@ namespace nnforge
 		network_updater_smart_ptr updater = updater_factory->create(
 			schema,
 			get_error_function(),
-			get_dropout_rate_map(),
-			get_weight_vector_bound_map(),
-			weight_decay);
+			get_dropout_rate_map());
 
 		if (training_algo == "sdlm")
 		{
@@ -515,6 +520,9 @@ namespace nnforge
 		res->learning_rate_decay_rate = learning_rate_decay_rate;
 		res->learning_rate_rise_head_epoch_count = learning_rate_rise_head_epoch_count;
 		res->learning_rate_rise_rate = learning_rate_rise_rate;
+		res->weight_decay = weight_decay;
+		res->batch_size = batch_size;
+		res->momentum = momentum;
 
 		return res;
 	}
@@ -952,14 +960,46 @@ namespace nnforge
 					sn.data[i] = static_cast<float>(buf[i]) * (1.0F / 255.0F);
 			}
 
-			boost::filesystem::path snapshot_file_path = snapshot_folder / (boost::format("snapshot_%|1$05d|.%2%") % i % snapshot_extension).str();
+			std::vector<unsigned int> snapshot_data_dimension_list = get_snapshot_data_dimension_list(sn.config.dimension_sizes.size());
 
-			snapshot_visualizer::save_2d_snapshot(
-				sn,
-				snapshot_file_path.string().c_str(),
-				is_rgb_input() && (sn.config.feature_map_count == 3),
-				true);
+			if (snapshot_data_dimension_list.size() == 2)
+			{
+				boost::filesystem::path snapshot_file_path = snapshot_folder / (boost::format("snapshot_%|1$05d|.%2%") % i % snapshot_extension).str();
+
+				snapshot_visualizer::save_2d_snapshot(
+					sn,
+					snapshot_file_path.string().c_str(),
+					is_rgb_input() && (sn.config.feature_map_count == 3),
+					true,
+					snapshot_scale,
+					snapshot_data_dimension_list);
+			}
+			else if (snapshot_data_dimension_list.size() == 3)
+			{
+				boost::filesystem::path snapshot_file_path = snapshot_folder / (boost::format("snapshot_%|1$05d|.%2%") % i % snapshot_extension_video).str();
+
+				snapshot_visualizer::save_3d_snapshot(
+					sn,
+					snapshot_file_path.string().c_str(),
+					is_rgb_input() && (sn.config.feature_map_count == 3),
+					true,
+					snapshot_video_fps,
+					snapshot_scale,
+					snapshot_data_dimension_list);
+			}
+			else
+				throw neural_network_exception((boost::format("Saving snapshot for %1% dimensions is not implemented") % snapshot_data_dimension_list.size()).str());
 		}
+	}
+
+	std::vector<unsigned int> neural_network_toolset::get_snapshot_data_dimension_list(unsigned int original_dimension_count) const
+	{
+		std::vector<unsigned int> res;
+		
+		for(unsigned int i = 0; i < original_dimension_count; ++i)
+			res.push_back(i);
+
+		return res;
 	}
 
 	void neural_network_toolset::snapshot()
@@ -1047,9 +1087,6 @@ namespace nnforge
 					boost::filesystem::path snapshot_layer_folder = snapshot_folder / (boost::format("%|1$03d|") % layer_id).str();
 					boost::filesystem::create_directories(snapshot_layer_folder);
 
-					boost::filesystem::path snapshot_file_path = snapshot_layer_folder / ((boost::format("snapshot_layer_%|1$03d|_fm_%|2$04d|_%3%_sample_%4%") % layer_id % feature_map_id % snapshot_data_set % current_sample_id).str() + "." + snapshot_extension);
-					boost::filesystem::path original_snapshot_file_path = snapshot_layer_folder / ((boost::format("snapshot_layer_%|1$03d|_fm_%|2$04d|_%3%_sample_%4%_original") % layer_id % feature_map_id % snapshot_data_set % current_sample_id).str() + "." + snapshot_extension);
-
 					std::pair<layer_configuration_specific_snapshot_smart_ptr, layer_configuration_specific_snapshot_smart_ptr> input_image_pair = run_analyzer_for_single_neuron(
 						*analyzer,
 						layer_id,
@@ -1057,17 +1094,31 @@ namespace nnforge
 						layer_config_list[layer_id + 1].get_offsets(offset),
 						layer_config_list[layer_id + 1].feature_map_count);
 
-					snapshot_visualizer::save_2d_snapshot(
-						*(input_image_pair.first),
-						snapshot_file_path.string().c_str(),
-						is_rgb_input() && (input_image_pair.first->config.feature_map_count == 3),
-						true);
+					std::vector<unsigned int> snapshot_data_dimension_list = get_snapshot_data_dimension_list(input_image_pair.first->config.dimension_sizes.size());
 
-					snapshot_visualizer::save_2d_snapshot(
-						*(input_image_pair.second),
-						original_snapshot_file_path.string().c_str(),
-						is_rgb_input() && (input_image_pair.second->config.feature_map_count == 3),
-						false);
+					if (snapshot_data_dimension_list.size() == 2)
+					{
+						boost::filesystem::path snapshot_file_path = snapshot_layer_folder / ((boost::format("snapshot_layer_%|1$03d|_fm_%|2$04d|_%3%_sample_%4%") % layer_id % feature_map_id % snapshot_data_set % current_sample_id).str() + "." + snapshot_extension);
+						boost::filesystem::path original_snapshot_file_path = snapshot_layer_folder / ((boost::format("snapshot_layer_%|1$03d|_fm_%|2$04d|_%3%_sample_%4%_original") % layer_id % feature_map_id % snapshot_data_set % current_sample_id).str() + "." + snapshot_extension);
+
+						snapshot_visualizer::save_2d_snapshot(
+							*(input_image_pair.first),
+							snapshot_file_path.string().c_str(),
+							is_rgb_input() && (input_image_pair.first->config.feature_map_count == 3),
+							true,
+							snapshot_scale,
+							snapshot_data_dimension_list);
+
+						snapshot_visualizer::save_2d_snapshot(
+							*(input_image_pair.second),
+							original_snapshot_file_path.string().c_str(),
+							is_rgb_input() && (input_image_pair.second->config.feature_map_count == 3),
+							false,
+							snapshot_scale,
+							snapshot_data_dimension_list);
+					}
+					else
+						throw neural_network_exception((boost::format("Saving snapshot for %1% dimensions is not implemented") % snapshot_data_dimension_list.size()).str());
 				}
 			}
 
@@ -1407,35 +1458,22 @@ namespace nnforge
 		network_updater_smart_ptr updater = updater_factory->create(
 			schema,
 			get_error_function(),
-			get_dropout_rate_map(),
-			get_weight_vector_bound_map(),
-			weight_decay);
+			get_dropout_rate_map());
 
 		supervised_data_reader_smart_ptr training_data_reader = get_data_reader_for_training();
 		training_data_reader = supervised_data_reader_smart_ptr(new supervised_limited_entry_count_data_reader(training_data_reader, profile_updater_entry_count));
 
-		std::vector<network_data_smart_ptr> learning_rates(ann_count);
-		std::vector<network_data_smart_ptr> data(ann_count);
-
+		network_data_smart_ptr data(new network_data(*schema));
 		{
 			random_generator data_gen = rnd::get_random_generator(47597);
-			for(int i = ann_count - 1; i >= 0; --i)
-			{
-				network_data_smart_ptr data_elem(new network_data(*schema));
-				data_elem->randomize(*schema, data_gen);
-				data[i] = data_elem;
-			}
+			data->randomize(*schema, data_gen);
 		}
 
+		network_data_smart_ptr learning_rates(new network_data(*schema));
 		{
 			random_generator data_gen = rnd::get_random_generator(674578);
-			for(int i = ann_count - 1; i >= 0; --i)
-			{
-				network_data_smart_ptr ts(new network_data(*schema));
-				ts->random_fill(learning_rate * 0.5F, learning_rate * 1.5F, data_gen);
-				//ts->fill(learning_rate);
-				learning_rates[i] = ts;
-			}
+			learning_rates->random_fill(learning_rate * 0.5F, learning_rate * 1.5F, data_gen);
+			//learning_rates->fill(learning_rate);
 		}
 
 		std::vector<float> random_uniform_list(1 << 10);
@@ -1448,7 +1486,10 @@ namespace nnforge
 		updater->update(
 			*training_data_reader,
 			learning_rates,
-			data);
+			data,
+			batch_size,
+			weight_decay,
+			momentum);
 		boost::chrono::duration<float> sec = boost::chrono::high_resolution_clock::now() - start;
 		/*
 		{
@@ -1477,7 +1518,7 @@ namespace nnforge
 			std::cout << (boost::format("%|1$.1f| GFLOPs, %|2$.2f| seconds") % gflops % time_to_complete_seconds) << std::endl;
 		}
 
-		std::cout << data[data.size()-1]->get_stat() << std::endl;
+		std::cout << data->get_stat() << std::endl;
 	}
 
 	void neural_network_toolset::profile_hessian()
@@ -1548,11 +1589,6 @@ namespace nnforge
 	std::map<unsigned int, float> neural_network_toolset::get_dropout_rate_map() const
 	{
 		return std::map<unsigned int, float>();
-	}
-
-	std::map<unsigned int, weight_vector_bound> neural_network_toolset::get_weight_vector_bound_map() const
-	{
-		return std::map<unsigned int, weight_vector_bound>();
 	}
 
 	std::vector<data_transformer_smart_ptr> neural_network_toolset::get_input_data_transformer_list_for_training() const

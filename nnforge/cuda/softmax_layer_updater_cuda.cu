@@ -262,6 +262,9 @@ namespace nnforge
 			unsigned int numBlocksPower2 = next_power_of_two(numBlocks);
 			unsigned int size_intermediate_shared_memory =
 					sizeof(float) * numBlocksPower2;
+			if (offset_input_entry_id > 0)
+				throw neural_network_exception("softmax_layer_updater_cuda is not able to run using offset");
+
 
 			float* max_intermediate;
 			float* max_global;
@@ -390,12 +393,6 @@ namespace nnforge
 		bool softmax_layer_updater_cuda::is_in_place_backprop() const
 		{
 			return true;
-		}
-
-		void softmax_layer_updater_cuda::updater_configured()
-		{
-			if (!different_input)
-				throw neural_network_exception("softmax_layer_updater_cuda is not able to run using the same input");
 		}
 	}
 }

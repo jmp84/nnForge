@@ -40,6 +40,7 @@ namespace nnforge
 			network_data_pusher& pusher);
 
 		unsigned int epoch_count;
+		unsigned int batch_size;
 		float learning_rate;
 		unsigned int learning_rate_decay_tail_epoch_count;
 		float learning_rate_decay_rate;
@@ -49,6 +50,8 @@ namespace nnforge
 		float previous_error; 
 		// Error for current epoch
 		float current_error; 
+		float weight_decay;
+		float momentum;
 
 	protected:
 		network_trainer(network_schema_smart_ptr schema);
@@ -57,12 +60,10 @@ namespace nnforge
 
 		virtual void initialize_train(supervised_data_reader& reader) = 0;
 
-		virtual unsigned int get_max_batch_size() const = 0;
-
 		// The method should add testing result to the training history of each element
 		virtual void train_step(
 			supervised_data_reader& reader,
-			std::vector<training_task_state>& task_list) = 0;
+			training_task_state& task) = 0;
 
 		network_schema_smart_ptr schema;
 
