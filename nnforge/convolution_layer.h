@@ -74,13 +74,13 @@ namespace nnforge
 	};
 
 	/**
-	 * A function helper that determines whether to use or not
-	 * uniform weight
+	 * A function helper that determines whether to use
+	 * nnforge default, uniform or fixed weight initialization.
 	 */
-	bool uniform_user_defined_weights(FuzzyBool b);
+	WeightsInit user_defined_weights_type(std::string const &b);
 
 	/**
-	 * A helper function that sets/gets the usage of uniform weights defined by user
+	 * A helper function that sets/gets the usage of weights defined by user
 	 */
-	float uniform_user_defined_weight_boundary(float w);
+	float user_defined_weight(float w);
 }

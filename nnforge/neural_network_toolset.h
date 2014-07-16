@@ -189,7 +189,8 @@ namespace nnforge
 		float weight_decay;
 		// Contains the boundary for the uniform weights 
 		// i.e. generate weights in (-initialize_uniform_weights,initialize_uniform_weights)
-		float initialize_uniform_weights;
+		std::string initialize_weights;
+		float initial_weights_value;
 		// Apply decay to learning rate if validating NLL
 		// for current epoch is worse than previous epoch
 		bool learning_rate_decay_sgd_nll;

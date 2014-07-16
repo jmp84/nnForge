@@ -52,5 +52,6 @@
 //Used for boolean helper functions with static bool
 namespace nnforge {
 	enum FuzzyBool {TRUE,FALSE,UNSET};
+	enum WeightsInit{NNFORGE,UNIFORM,FIXED,WUNSET};
 }
 #endif
