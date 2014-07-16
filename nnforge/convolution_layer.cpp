@@ -39,6 +39,15 @@ namespace nnforge
 		return weightType;
 	};
 
+	unsigned long user_defined_weight_seed(unsigned long s){
+		static unsigned long seed = static_cast<unsigned long>(std::time(0));
+		if (s < std::numeric_limits<unsigned long>::max()) {
+			seed = s;
+			std::cout << "Random seed is set by user to " << seed << std::endl;
+		}
+		return seed;
+	};
+
 	float user_defined_weight(float w=std::numeric_limits<float>::max()){
 		static float weight = std::numeric_limits<float>::max();
 		if (w < std::numeric_limits<float>::max())

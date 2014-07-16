@@ -83,4 +83,10 @@ namespace nnforge
 	 * A helper function that sets/gets the usage of weights defined by user
 	 */
 	float user_defined_weight(float w);
+
+	/**
+	 * A helper function that sets/gets the weight seed
+	 */
+	unsigned long user_defined_weight_seed(unsigned long seed = std::numeric_limits<unsigned long>::max());
+
 }

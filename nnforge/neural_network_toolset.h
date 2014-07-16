@@ -191,6 +191,9 @@ namespace nnforge
 		// i.e. generate weights in (-initialize_uniform_weights,initialize_uniform_weights)
 		std::string initialize_weights;
 		float initial_weights_value;
+		// user-defined initial seed for the random generator.
+		// Experiments should be replicable if the same seed is used.
+		unsigned long initial_weights_seed;
 		// Apply decay to learning rate if validating NLL
 		// for current epoch is worse than previous epoch
 		bool learning_rate_decay_sgd_nll;

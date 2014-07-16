@@ -229,6 +229,7 @@ namespace nnforge
 			("weight_decay", boost::program_options::value<float>(&weight_decay)->default_value(0.0F), "Weight decay.")
 			("initialize_weights", boost::program_options::value<std::string>(&initialize_weights)->default_value("nnforge"), "Options are nnforge(default), uniform or fixed. For the latter two, use initial_weight_value")
 			("initial_weight_value", boost::program_options::value<float>(&initial_weights_value)->default_value(0.00F), "Weight initialization (uniform or fixed).")
+			("initial_weights_seed", boost::program_options::value<unsigned long>(&initial_weights_seed)->default_value(static_cast<unsigned long>(std::numeric_limits<unsigned long>::max())), "Weight initialization seed. ")
 			("batch_size,B", boost::program_options::value<unsigned int>(&batch_size)->default_value(1), "Training mini-batch size.")
 			("momentum,M", boost::program_options::value<float>(&momentum)->default_value(0.0F), "Momentum in training.")
 			;
@@ -347,6 +348,7 @@ namespace nnforge
 
 		user_defined_weights_type(initialize_weights);
 		user_defined_weight(fabs(initial_weights_value));
+		user_defined_weight_seed(initial_weights_seed);
 
 		if (learning_rate_decay_sgd_nll)
 				use_learning_rate_decay_sgd_nll(TRUE);
@@ -399,6 +401,7 @@ namespace nnforge
 			std::cout << "weight_decay" << "=" << weight_decay << std::endl;
 			std::cout << "initialize_weights" << "=" << initialize_weights << std::endl;
 			std::cout << "initial_weights_value" << "=" << initial_weights_value << std::endl;
+			std::cout << "initial_weights_seed" << "=" << initial_weights_seed << std::endl;
 			std::cout << "batch_size" << "=" << batch_size << std::endl;
 			std::cout << "momentum" << "=" << momentum << std::endl;
 		}
