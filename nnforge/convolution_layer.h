@@ -77,7 +77,7 @@ namespace nnforge
 	 * A function helper that determines whether to use
 	 * nnforge default, uniform or fixed weight initialization.
 	 */
-	WeightsInit user_defined_weights_type(std::string const &b);
+	WeightsInit user_defined_weights_type(std::string const &type);
 
 	/**
 	 * A helper function that sets/gets the usage of weights defined by user

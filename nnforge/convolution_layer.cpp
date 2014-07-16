@@ -27,14 +27,14 @@
 namespace nnforge
 {
 
-	WeightsInit user_defined_weights_type(std::string const &b = "") {
+	WeightsInit user_defined_weights_type(std::string const &type = "") {
 		static WeightsInit weightType = NNFORGE;
-		if (b == "") return weightType;
-		if (b == "nnforge")
+		if (type == "") return weightType;
+		if (type == "nnforge")
 			weightType = NNFORGE;
-		else if (b == "uniform")
+		else if (type == "uniform")
 			weightType = UNIFORM;
-		else if (b == "fixed")
+		else if (type == "fixed")
 			weightType = FIXED;
 		return weightType;
 	};
