@@ -173,7 +173,6 @@ WeightsInit user_defined_weights_type(std::string const &b = "") {
 		switch(user_defined_weights_type()) {
 		case NNFORGE:
 			{
-				std::cout << "Initializing NNFORGE STYLE" << std::endl;
 				//default hardwired randomization (normal distribution)
 				float standard_deviation = 1.0F / sqrtf(static_cast<float>(input_neuron_count));
 				float max_abs_value = 3.0F * standard_deviation;
@@ -189,7 +188,6 @@ WeightsInit user_defined_weights_type(std::string const &b = "") {
 			} 
 		case UNIFORM:
 			{
-				std::cout << "Initializing U WEIGHTS" << std::endl;
 				//uniform with boundaries defined by user
 				float w=user_defined_weight();
 				nnforge_uniform_real_distribution<float> ud(-w, w);
@@ -201,7 +199,6 @@ WeightsInit user_defined_weights_type(std::string const &b = "") {
 			}
 		case FIXED:
 			{
-				std::cout << "Initializing F WEIGHTS" << std::endl;
 				float w=user_defined_weight();
 				for(unsigned int i = 0; i < data[0].size(); ++i) 
 					data[0][i] = w;
