@@ -27,7 +27,7 @@
 namespace nnforge
 {
 
-WeightsInit user_defined_weights_type(std::string const &b = "") {
+	WeightsInit user_defined_weights_type(std::string const &b = "") {
 		static WeightsInit weightType = NNFORGE;
 		if (b == "") return weightType;
 		if (b == "nnforge")
@@ -208,7 +208,6 @@ WeightsInit user_defined_weights_type(std::string const &b = "") {
 			std::cout << "Unknown weight initialization type" << std::endl;
 			exit(EXIT_FAILURE);
 		}
-		
 		std::fill(data[1].begin(), data[1].end(), 0.0F);
 	}
 
