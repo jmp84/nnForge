@@ -27,14 +27,28 @@
 namespace nnforge
 {
 
-	bool uniform_user_defined_weights(FuzzyBool b = UNSET) {
-		static bool useWeight = false;
-		if (b != UNSET)
-			useWeight = (b==TRUE)? true: false;
-		return useWeight;
+	WeightsInit user_defined_weights_type(std::string const &type = "") {
+		static WeightsInit weightType = NNFORGE;
+		if (type == "") return weightType;
+		if (type == "nnforge")
+			weightType = NNFORGE;
+		else if (type == "uniform")
+			weightType = UNIFORM;
+		else if (type == "fixed")
+			weightType = FIXED;
+		return weightType;
 	};
 
-	float uniform_user_defined_weight_boundary(float w=std::numeric_limits<float>::max()){
+	unsigned long user_defined_weight_seed(unsigned long s){
+		static unsigned long seed = static_cast<unsigned long>(std::time(0));
+		if (s < std::numeric_limits<unsigned long>::max()) {
+			seed = s;
+			std::cout << "Random seed is set by user to " << seed << std::endl;
+		}
+		return seed;
+	};
+
+	float user_defined_weight(float w=std::numeric_limits<float>::max()){
 		static float weight = std::numeric_limits<float>::max();
 		if (w < std::numeric_limits<float>::max())
 			weight = w;
@@ -164,29 +178,45 @@ namespace nnforge
 
 		unsigned int input_neuron_count = input_feature_map_count;
 		std::for_each(window_sizes.begin(), window_sizes.end(), input_neuron_count *= boost::lambda::_1);
-	  
-		if (!uniform_user_defined_weights()) {
-			//default hardwired randomization (normal distribution)
-			float standard_deviation = 1.0F / sqrtf(static_cast<float>(input_neuron_count));
-			float max_abs_value = 3.0F * standard_deviation;
-			nnforge_normal_distribution<float> nd(0.0F, standard_deviation);
-			//nnforge_uniform_real_distribution<float> nd(-2.0F * standard_deviation, 2.0F * standard_deviation);
-			for(unsigned int i = 0; i < data[0].size(); ++i) {
-				float val = nd(generator);
-				while (fabs(val) > max_abs_value)
-					val = nd(generator);
-				data[0][i] = val;
-			}
-		} else {
-			//uniform with boundaries defined by user
-			float w=uniform_user_defined_weight_boundary();
-			nnforge_uniform_real_distribution<float> ud(-w, w);
-			for(unsigned int i = 0; i < data[0].size(); ++i) {
-				float val = ud(generator);
-				data[0][i] = val;
-			}
-		}
 
+		switch(user_defined_weights_type()) {
+		case NNFORGE:
+			{
+				//default hardwired randomization (normal distribution)
+				float standard_deviation = 1.0F / sqrtf(static_cast<float>(input_neuron_count));
+				float max_abs_value = 3.0F * standard_deviation;
+				nnforge_normal_distribution<float> nd(0.0F, standard_deviation);
+				//nnforge_uniform_real_distribution<float> nd(-2.0F * standard_deviation, 2.0F * standard_deviation);
+				for(unsigned int i = 0; i < data[0].size(); ++i) {
+					float val = nd(generator);
+					while (fabs(val) > max_abs_value)
+						val = nd(generator);
+					data[0][i] = val;
+				}
+				break;
+			} 
+		case UNIFORM:
+			{
+				//uniform with boundaries defined by user
+				float w=user_defined_weight();
+				nnforge_uniform_real_distribution<float> ud(-w, w);
+				for(unsigned int i = 0; i < data[0].size(); ++i) {
+					float val = ud(generator);
+					data[0][i] = val;
+				}
+				break;
+			}
+		case FIXED:
+			{
+				float w=user_defined_weight();
+				for(unsigned int i = 0; i < data[0].size(); ++i) 
+					data[0][i] = w;
+				break;
+			}
+		default:
+			std::cout << "Unknown weight initialization type" << std::endl;
+			exit(EXIT_FAILURE);
+		}
 		std::fill(data[1].begin(), data[1].end(), 0.0F);
 	}
 

@@ -227,7 +227,9 @@ namespace nnforge
 			("load_resume,R", boost::program_options::value<bool>(&load_resume)->default_value(false), "Resume neural network training strating from saved.")
 			("epoch_count_in_training_set", boost::program_options::value<unsigned int>(&epoch_count_in_training_set)->default_value(1), "The whole should be split in this amount of epochs.")
 			("weight_decay", boost::program_options::value<float>(&weight_decay)->default_value(0.0F), "Weight decay.")
-			("initialize_uniform_weights", boost::program_options::value<float>(&initialize_uniform_weights)->default_value(0.00F), "Uniform weight initialization. Set to a value to 0.0F to disable")
+			("initialize_weights", boost::program_options::value<std::string>(&initialize_weights)->default_value("nnforge"), "Options are nnforge(default), uniform or fixed. For the latter two, use initial_weight_value")
+			("initial_weight_value", boost::program_options::value<float>(&initial_weights_value)->default_value(0.00F), "Weight initialization (uniform or fixed).")
+			("initial_weights_seed", boost::program_options::value<unsigned long>(&initial_weights_seed)->default_value(static_cast<unsigned long>(std::numeric_limits<unsigned long>::max())), "Weight initialization seed. ")
 			("batch_size,B", boost::program_options::value<unsigned int>(&batch_size)->default_value(1), "Training mini-batch size.")
 			("momentum,M", boost::program_options::value<float>(&momentum)->default_value(0.0F), "Momentum in training.")
 			;
@@ -344,10 +346,9 @@ namespace nnforge
 			std::cout << buffer << std::endl;
 		}
 
-		if (initialize_uniform_weights != 0.0F) {
-		  uniform_user_defined_weights(TRUE);
-		  uniform_user_defined_weight_boundary(fabs(initialize_uniform_weights));
-		}
+		user_defined_weights_type(initialize_weights);
+		user_defined_weight(fabs(initial_weights_value));
+		user_defined_weight_seed(initial_weights_seed);
 
 		if (learning_rate_decay_sgd_nll)
 				use_learning_rate_decay_sgd_nll(TRUE);
@@ -398,7 +399,9 @@ namespace nnforge
 			std::cout << "load_resume" << "=" << load_resume << std::endl;
 			std::cout << "epoch_count_in_training_set" << "=" << epoch_count_in_training_set << std::endl;
 			std::cout << "weight_decay" << "=" << weight_decay << std::endl;
-			std::cout << "initialize_uniform_weights" << "=" << initialize_uniform_weights << std::endl;
+			std::cout << "initialize_weights" << "=" << initialize_weights << std::endl;
+			std::cout << "initial_weights_value" << "=" << initial_weights_value << std::endl;
+			std::cout << "initial_weights_seed" << "=" << initial_weights_seed << std::endl;
 			std::cout << "batch_size" << "=" << batch_size << std::endl;
 			std::cout << "momentum" << "=" << momentum << std::endl;
 		}
