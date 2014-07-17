@@ -88,5 +88,4 @@ namespace nnforge
 	 * A helper function that sets/gets the weight seed
 	 */
 	unsigned long user_defined_weight_seed(unsigned long seed = std::numeric_limits<unsigned long>::max());
-
 }

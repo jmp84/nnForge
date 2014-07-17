@@ -44,7 +44,6 @@ namespace nnforge
 
 		network_data_smart_ptr data(new network_data(*schema));
 
-
 		data->randomize(
 			*schema,
 			gen);
